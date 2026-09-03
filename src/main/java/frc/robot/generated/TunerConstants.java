@@ -76,8 +76,10 @@ public class TunerConstants {
     private static final Pigeon2Configuration pigeonConfigs = null;
 
     // CAN bus that the devices are located on;
-    // All swerve devices must share the same CAN bus
-    public static final CANBus kCANBus = new CANBus("", "./logs/example.hoot");
+    // All swerve devices must share the same CAN bus.
+    // Switched to the CANivore bus name (see Constants.CANIVORE). All CTRE
+    // devices live on the CANivore; only the PDH 2.0 stays on the roboRIO bus.
+    public static final CANBus kCANBus = new CANBus(frc.robot.Constants.CANIVORE, "./logs/example.hoot");
 
     // Measured robot speed (m/s) at 12 V applied output;
     // This is NOT the desired max robot speed - see MaxSpeed in RobotContainer instead;
