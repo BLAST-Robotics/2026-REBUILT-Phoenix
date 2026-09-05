@@ -10,13 +10,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.hardware.MotorConfigs;
 
-/**
- * Hopper / agitator. A single motor drives a paddle agitator
- * (16T -> 24T pulley) that moves spheres forward (counter-clockwise positive)
- * toward the shooter.
- *
- * <p>Device number comes from {@link Constants.old}.
- */
+/** Agitator that moves spheres forward toward the shooter. */
 public class Hopper extends SubsystemBase {
     private final TalonFX m_agitator;
 
@@ -28,7 +22,7 @@ public class Hopper extends SubsystemBase {
             0.0, 0.0);
     }
 
-    /** Sets agitator velocity in mechanism RPS (positive = forward). */
+/** Sets agitator velocity in mechanism RPS. */
     public void setAgitatorRps(double rps) {
         double motorRps = MotorConfigs.outputToMotorRps(rps, Constants.Hopper.kAgitatorReduction);
         m_agitator.setControl(new VelocityVoltage(motorRps));
@@ -38,12 +32,11 @@ public class Hopper extends SubsystemBase {
         m_agitator.set(percent);
     }
 
-    /** Runs the agitator forward to feed spheres. */
     public Command runForward() {
         return run(() -> setAgitatorRps(Constants.Hopper.kAgitatorMaxRPS));
     }
 
-    /** Reverses the agitator (jams / clearing). */
+    /** Reverse the agitator (jams / clearing). */
     public Command runReverse() {
         return run(() -> setAgitatorRps(-Constants.Hopper.kAgitatorMaxRPS * 0.5));
     }

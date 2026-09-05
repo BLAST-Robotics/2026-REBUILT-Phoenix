@@ -13,22 +13,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants;
 import frc.robot.hardware.MotorConfigs;
 
-/**
- * Intake: a 1.125" roller (Kraken x60) that pulls spheres in, and a pivot
- * (Kraken x60) that raises/lowers the intake.
- *
- * <p>Geometry: the intake pivot axis sits on the <b>top, inline with the front
- * module axle</b>. Stowed, the arm is up over the chassis. Deployed, the arm
- * swings so the roller is parallel to the ground, down <b>in front of the front
- * modules</b>, pulling the ball in and up and over the swerve base toward the
- * shooter at the rear.
- *
- * <p>Pivot sign / soft-limit convention here uses CW = up, CCW = down with the
- * WCP through-bore (CANcoder) on the pivot output shaft. Exact sign is tuned on
- * the bench to match the mounted arm.
- *
- * <p>Device numbers come from {@link Constants.old} (existing wiring).
- */
+/** Roller that pulls spheres in, pivot that raises/lowers it. */
 public class Intake extends SubsystemBase {
     private final TalonFX m_roller;
     private final TalonFX m_pivot;
@@ -47,12 +32,12 @@ m_roller = new TalonFX(Constants.old.Intake.kRoller, Constants.kCANivoreBus);
             Constants.Intake.kPivotReverseSoftLimitRot, Constants.Intake.kPivotForwardSoftLimitRot);
     }
 
-    /** Positive percent pulls spheres in. */
+/** Positive percent pulls spheres in. */
     public void setRollerPercentage(double percent) {
         m_roller.set(percent);
     }
 
-    /** Percent drive. Positive = up per convention. */
+    /** Percent drive. */
     public void setPivotPercentage(double percent) {
         m_pivot.set(percent);
     }

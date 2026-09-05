@@ -14,11 +14,6 @@ import frc.robot.hardware.MotorConfigs;
  * Shooter. Two counter-rotating Kraken x60 drive the drum + flywheels
  * (geared 15:24), and one Talon X44 spindle drives the internal rollers. The
  * drum passes spheres up to the rotating hood rollers.
- *
- * <p>The two x60 motors physically face opposite directions, so one is inverted
- * relative to the other; both spin the drum in the same rotational sense.
- *
- * <p>Device numbers come from {@link Constants.old}.
  */
 public class Shooter extends SubsystemBase {
     private final TalonFX m_drumLeft;
@@ -30,8 +25,7 @@ public class Shooter extends SubsystemBase {
         m_drumRight = new TalonFX(Constants.old.Shooter.kDrumRight, Constants.kCANivoreBus);
         m_spindle = new TalonFX(Constants.old.Shooter.kSpindle, Constants.kCANivoreBus);
 
-        // Both motors drive the drum; the right-facing one is inverted so they
-        // counter-rotate but spin the drum the same way.
+        // Right motor is inverted so both spin the drum the same way.
         MotorConfigs.applyVelocityConfig(m_drumLeft, false,
             Constants.Shooter.kDrumSupplyLimit, Constants.Shooter.kDrumStatorLimit,
             Constants.Shooter.kDrumKP, Constants.Shooter.kDrumKI, Constants.Shooter.kDrumKD,
@@ -47,7 +41,7 @@ public class Shooter extends SubsystemBase {
             0.0, 0.0);
     }
 
-    /** Set drum speed in mechanism RPM (both motors driven together). */
+    /** Set drum speed in mechanism RPM. */
     public void setDrumRpm(double rpm) {
         double motorRps = MotorConfigs.outputToMotorRps(rpm / 60.0, Constants.Shooter.kDrumGearReduction);
         m_drumLeft.setControl(new VelocityVoltage(motorRps));
@@ -71,7 +65,7 @@ public class Shooter extends SubsystemBase {
         m_spindle.set(percent);
     }
 
-    /** Revol the shooter to the commanded RPM. */
+    /** Rev the shooter to the commanded RPM. */
     public Command revToRpm(double rpm) {
         return run(() -> setDrumRpm(rpm));
     }

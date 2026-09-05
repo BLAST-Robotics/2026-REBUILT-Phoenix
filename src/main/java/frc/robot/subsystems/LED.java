@@ -13,13 +13,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Constants;
 
-/**
- * Robot status LEDs on a CTRE CANdle attached to the CANivore bus. Uses the
- * Phoenix 6 {@link CANdle} API: a single solid color or one of the built-in
- * animations (strobe / rainbow) applied to the whole strip on anim slot 0.
- *
- * <p>Device number comes from {@link Constants.old}.
- */
+/** Status LEDs on a CTRE CANdle (Phoenix 6 API). */
 public class LED extends SubsystemBase {
     private final int m_ledCount;
 
@@ -44,7 +38,6 @@ public class LED extends SubsystemBase {
             new SolidColor(Constants.LED.kFirstLED, m_ledCount - 1).withColor(color));
     }
 
-    /** Rainbow across the whole strip. */
     public void setRainbow() {
         m_candle.setControl(new RainbowAnimation(Constants.LED.kFirstLED, m_ledCount - 1));
     }

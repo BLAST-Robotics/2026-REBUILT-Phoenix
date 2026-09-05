@@ -1,22 +1,23 @@
 package frc.robot.commands;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 
 import frc.robot.AimTables;
+import frc.robot.Constants.Aim;
+import frc.robot.FieldConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Hood;
 import frc.robot.subsystems.Shooter;
 
 /**
- * Shoot-on-the-move. Continuously recomputes the hood angle and shooter RPM
- * from the robot's live field pose (odom + Limelight MegaTag2) while the driver
- * keeps the robot moving, and fires. Unlike {@link AimAndShoot} this never
- * finishes on its own - it keeps re-aiming as the robot travels so the shot is
- * correct at the moment of release.
- *
- * <p>The drive is deliberately left to the driver separate from this command.
+ * Shoot-on-the-move. Continuously re-aims the hood and shooter from the live
+ * pose (with velocity lead) while the driver moves, then fires. Never finishes.
  */
 public class ShootOnTheMove extends Command {
     private final CommandSwerveDrivetrain m_drivetrain;
@@ -24,11 +25,7 @@ public class ShootOnTheMove extends Command {
     private final Shooter m_shooter;
     private final AimTables m_aimTables;
 
-    // Shot + target origin offsets (meters). Refine once the shot origin and
-    // target height/offset are known for the 2026 field.
-    private static final double kTargetX = 16.54; // meters
-    private static final double kTargetY = 8.02;  // meters
-    private static final double kSpindleRps = 80.0; // roller spindle setpoint
+    private static final double kSpindleRps = 80.0;
 
     public ShootOnTheMove(
         CommandSwerveDrivetrain drivetrain,
@@ -43,25 +40,37 @@ public class ShootOnTheMove extends Command {
     }
 
     @Override
-    public void initialize() {
-        // Nothing to do at start; loop keeps us aimed.
-    }
-
-    @Override
     public void execute() {
-        // Distance to the target from the live pose.
-        double distance = m_drivetrain.getState().Pose
-            .getTranslation()
-            .getDistance(new Translation2d(kTargetX, kTargetY));
+        Pose2d pose = m_drivetrain.getState().Pose;
 
-        double hoodDeg = m_aimTables.hoodDegreesForDistance(distance);
-        double rpm = m_aimTables.shooterRpmForDistance(distance);
+        Translation2d muzzle = pose.getTranslation()
+            .minus(new Translation2d(Aim.kMuzzleOffsetBack, 0.0).rotateBy(pose.getRotation()));
+
+        ChassisSpeeds speeds = m_drivetrain.getState().Speeds;
+        Translation2d fieldVel = new Translation2d(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
+            .rotateBy(pose.getRotation());
+
+        Translation2d hub = DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
+            ? FieldConstants.kHubRed
+            : FieldConstants.kHubBlue;
+
+        double tof = 0.0;
+        double distance = 0.0;
+        double hoodDeg = 0.0;
+        double rpm = 0.0;
+        for (int i = 0; i < 3; i++) {
+            distance = muzzle.getDistance(hub.minus(fieldVel.times(tof)));
+            hoodDeg = m_aimTables.hoodDegreesForDistance(distance);
+            rpm = m_aimTables.shooterRpmForDistance(distance);
+            double exitSpeed = Aim.kExitPerDrumRps * (rpm / 60.0);
+            double horizSpeed = exitSpeed * Math.cos(Math.toRadians(hoodDeg));
+            tof = horizSpeed > 1e-6 ? distance / horizSpeed : 0.0;
+        }
 
         SmartDashboard.putNumber("Aim/Distance", distance);
         SmartDashboard.putNumber("Aim/HoodDeg", hoodDeg);
         SmartDashboard.putNumber("Aim/DrumRPM", rpm);
 
-        // Keep re-aiming every loop while moving.
         m_hood.setHoodDegrees(hoodDeg);
         m_shooter.setDrumRpm(rpm);
         m_shooter.setSpindleRps(kSpindleRps);

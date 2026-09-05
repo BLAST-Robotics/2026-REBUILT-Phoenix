@@ -24,6 +24,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.commands.AimAndShoot;
 import frc.robot.commands.ShootOnTheMove;
 import frc.robot.generated.TunerConstants;
+import frc.robot.logging.FieldZones;
 import frc.robot.logging.PDHLogger;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Hood;
@@ -63,6 +64,7 @@ public class RobotContainer {
     private final LED led = new LED();
     private final LimelightVision vision = new LimelightVision(drivetrain);
     private final PDHLogger pdh = new PDHLogger(16); // PDH 2.0 CAN id (todo: confirm)
+    private final FieldZones fieldZones = new FieldZones(() -> drivetrain.getState().Pose);
 
     private final SendableChooser<Command> autoChooser;
 

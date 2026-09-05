@@ -6,14 +6,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Commands;
 
 /**
- * Registers named commands that auto paths can trigger via event markers.
- * With PathPlanner, "triggers to mechanisms" is implemented by placing event
- * markers in a path whose names map to commands here (e.g. "{IntakeDeploy}"
- * in the GUI resolves to {@code "IntakeDeploy"} below). These run the target
- * mechanisms while the robot follows the path.
- *
- * <p>Commands registered here let an auton drive up, deploy the intake, and
- * run the rollers/shooter precisely at the right field position.
+ * Registers named commands that auto paths can trigger via event markers,
+ * e.g. "{IntakeDeploy}" in PathPlanner maps to "IntakeDeploy" below.
  */
 public final class MechanismTriggers {
 
@@ -42,8 +36,7 @@ public final class MechanismTriggers {
             AimTables.getInstance().shooterRpmForDistance(3.0)));
         NamedCommands.registerCommand("ShooterStop", shooter.stopAll());
 
-        // A combined "shoot" trigger: keep the shooter revved and run the
-        // spindle/rollers to fire. Tune the RPM here or via the aim table.
+        // Keep the shooter revved and run the spindle to fire.
         NamedCommands.registerCommand("ShooterSpit", Commands.sequence(
             shooter.revToRpm(AimTables.getInstance().shooterRpmForDistance(3.0)),
             shooter.runSpindle(80.0)

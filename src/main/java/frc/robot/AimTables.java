@@ -3,14 +3,7 @@ package frc.robot;
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-/**
- * Aiming lookup tables. The Limelight provides a field pose; the robot's
- * distance to the shot target maps to a hood angle and shooter RPM using two
- * {@link InterpolatingDoubleTreeMap}s.
- *
- * <p>Breakpoints are defined in {@link Constants.Aim}. Tune the arrays in
- * Constants while testing on the field.
- */
+/** Maps distance-to-target to hood angle and shooter RPM. */
 public final class AimTables {
     private final InterpolatingDoubleTreeMap m_hoodDegrees = new InterpolatingDoubleTreeMap();
     private final InterpolatingDoubleTreeMap m_shooterRpm = new InterpolatingDoubleTreeMap();

@@ -1,33 +1,29 @@
 package frc.robot.commands;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 
 import frc.robot.AimTables;
+import frc.robot.Constants.Aim;
+import frc.robot.FieldConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Hood;
 import frc.robot.subsystems.Shooter;
 
 /**
- * Aim and shoot. Reads the robot's field pose (fusion of odom + Limelight
- * MegaTag2), computes the distance to the target, looks up the hood angle and
- * shooter RPM from the {@link InterpolatingDoubleTreeMap}s, then drives the
- * hood and shooter to those setpoints and runs the spindle to fire.
- *
- * <p>The Limelight is not used for direct aim - it just improves the field pose
- * used to compute distance. Once the pose is accurate, distance does the rest.
+ * Aim and shoot. Looks up hood angle and shooter RPM for the distance to the
+ * alliance hub, accounting for robot motion during the shot's time of flight.
  */
 public class AimAndShoot extends Command {
     private final CommandSwerveDrivetrain m_drivetrain;
     private final Hood m_hood;
     private final Shooter m_shooter;
     private final AimTables m_aimTables;
-
-    // Target is the center of the scoring target. Placeholder for the 2026 field;
-    // replace with the actual target pose once known.
-    private static final double kTargetX = 16.54; // meters
-    private static final double kTargetY = 8.02;  // meters
 
     public AimAndShoot(
         CommandSwerveDrivetrain drivetrain,
@@ -43,12 +39,34 @@ public class AimAndShoot extends Command {
 
     @Override
     public void execute() {
-        double distance = m_drivetrain.getState().Pose
-            .getTranslation()
-            .getDistance(new Translation2d(kTargetX, kTargetY));
+        Pose2d pose = m_drivetrain.getState().Pose;
 
-        double hoodDeg = m_aimTables.hoodDegreesForDistance(distance);
-        double rpm = m_aimTables.shooterRpmForDistance(distance);
+        // Ball exits 10in behind robot center.
+        Translation2d muzzle = pose.getTranslation()
+            .minus(new Translation2d(Aim.kMuzzleOffsetBack, 0.0).rotateBy(pose.getRotation()));
+
+        // Robot velocity in field frame.
+        ChassisSpeeds speeds = m_drivetrain.getState().Speeds;
+        Translation2d fieldVel = new Translation2d(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
+            .rotateBy(pose.getRotation());
+
+        // Aim at the hub, shifted back by how far the robot moves during the flight.
+        Translation2d hub = DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
+            ? FieldConstants.kHubRed
+            : FieldConstants.kHubBlue;
+
+        double tof = 0.0;
+        double distance = 0.0;
+        double hoodDeg = 0.0;
+        double rpm = 0.0;
+        for (int i = 0; i < 3; i++) {
+            distance = muzzle.getDistance(hub.minus(fieldVel.times(tof)));
+            hoodDeg = m_aimTables.hoodDegreesForDistance(distance);
+            rpm = m_aimTables.shooterRpmForDistance(distance);
+            double exitSpeed = Aim.kExitPerDrumRps * (rpm / 60.0);
+            double horizSpeed = exitSpeed * Math.cos(Math.toRadians(hoodDeg));
+            tof = horizSpeed > 1e-6 ? distance / horizSpeed : 0.0;
+        }
 
         SmartDashboard.putNumber("Aim/Distance", distance);
         SmartDashboard.putNumber("Aim/HoodDeg", hoodDeg);
