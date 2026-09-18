@@ -16,6 +16,8 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
+import frc.robot.Constants.OperatorConstants;
+import frc.robot.subsystems.rollerSubsystem;
 
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
@@ -24,6 +26,7 @@ public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
     private double SpeedMultiplier = 1.0; // Multiplier for speed scaling (can be adjusted for testing)
+    private final rollerSubsystem intake = OperatorConstants.INTAKE_ENABLED ? new rollerSubsystem() : null;
 
     private SlewRateLimiter xLimiter = new SlewRateLimiter(3.0); // Limit acceleration in X direction
     private SlewRateLimiter yLimiter = new SlewRateLimiter(3.0); // Limit acceleration in Y direction
@@ -57,6 +60,19 @@ public class RobotContainer {
                     .withRotationalRate(rotationalLimiter.calculate(-joystick.getRightX()) * MaxAngularRate * SpeedMultiplier) // Drive counterclockwise with negative X (left)
             )
         );
+        
+        Command reverseIntake = Commands.startEnd(
+        () -> {
+          intake.setRollerVoltage(frc.robot.Constants.IntakeConstants.ROLLER_REVERSE_VOLTAGE);  
+          intake.setAgitatorVoltage(frc.robot.Constants.IntakeConstants.AGITATOR_REVERSE_VOLTS);
+        },
+        () -> {
+          intake.stopRollers();
+          intake.stopAgitator();
+        }
+        );
+        
+    
 
         // Idle while the robot is disabled. This ensures the configured
         // neutral mode is applied to the drive motors while disabled.
