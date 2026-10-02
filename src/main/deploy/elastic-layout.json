@@ -1,0 +1,291 @@
+{
+  "version": 1,
+  "tabs": [
+    {
+      "name": "Driver",
+      "widgets": [
+        {
+          "name": "Field",
+          "type": "Field2d",
+          "properties": {
+            "topic": "/Pose/robotPose",
+            "robotWidth": 0.84,
+            "robotLength": 0.914,
+            "showSnapshot": true,
+            "snapshotEnabled": true
+          },
+          "x": 0.0,
+          "y": 0.0,
+          "width": 12.0,
+          "height": 8.0
+        }
+      ]
+    },
+    {
+      "name": "Swerve",
+      "widgets": [
+        {
+          "name": "Translation Ctrl",
+          "type": "Graph",
+          "properties": {
+            "topic": "/Pose/robotPose",
+            "period": 0.06
+          },
+          "x": 0.0,
+          "y": 0.0,
+          "width": 4.0,
+          "height": 4.0
+        }
+      ]
+    },
+    {
+      "name": "Mechanisms",
+      "widgets": [
+        {
+          "name": "Intake Pivot Rotations",
+          "type": "Single Number",
+          "properties": {
+            "topic": "/Intake/PivotRot",
+            "period": 0.1
+          },
+          "x": 0.0,
+          "y": 0.0,
+          "width": 2.0,
+          "height": 1.0
+        },
+        {
+          "name": "Intake Roller Current",
+          "type": "Single Number",
+          "properties": {
+            "topic": "/Intake/RollCur",
+            "period": 0.1
+          },
+          "x": 2.5,
+          "y": 0.0,
+          "width": 2.0,
+          "height": 1.0
+        },
+        {
+          "name": "Hopper Agitator RPS",
+          "type": "Single Number",
+          "properties": {
+            "topic": "/Hopper/AgitatorRPS",
+            "period": 0.1
+          },
+          "x": 0.0,
+          "y": 2.0,
+          "width": 2.0,
+          "height": 1.0
+        },
+        {
+          "name": "Shooter Drum RPM",
+          "type": "Single Number",
+          "properties": {
+            "topic": "/Shooter/DrumRPM",
+            "period": 0.1
+          },
+          "x": 2.5,
+          "y": 2.0,
+          "width": 2.0,
+          "height": 1.0
+        },
+        {
+          "name": "Shooter Spindle RPS",
+          "type": "Single Number",
+          "properties": {
+            "topic": "/Shooter/SpindleRPS",
+            "period": 0.1
+          },
+          "x": 5.0,
+          "y": 2.0,
+          "width": 2.0,
+          "height": 1.0
+        },
+        {
+          "name": "Hood Degrees",
+          "type": "Single Number",
+          "properties": {
+            "topic": "/Hood/Degrees",
+            "period": 0.1
+          },
+          "x": 0.0,
+          "y": 4.0,
+          "width": 2.0,
+          "height": 1.0
+        },
+        {
+          "name": "Goal Hood Degrees",
+          "type": "Single Number",
+          "properties": {
+            "topic": "/Aim/HoodDeg",
+            "period": 0.1
+          },
+          "x": 2.5,
+          "y": 4.0,
+          "width": 2.0,
+          "height": 1.0
+        },
+        {
+          "name": "Goal Shooter RPM",
+          "type": "Single Number",
+          "properties": {
+            "topic": "/Aim/DrumRPM",
+            "period": 0.1
+          },
+          "x": 5.0,
+          "y": 4.0,
+          "width": 2.0,
+          "height": 1.0
+        }
+      ]
+    },
+    {
+      "name": "Power",
+      "widgets": [
+        {
+          "name": "PDH Total Current",
+          "type": "Single Number",
+          "properties": {
+            "topic": "/PDH/TotalCurrent",
+            "period": 0.1
+          },
+          "x": 0.0,
+          "y": 0.0,
+          "width": 3.0,
+          "height": 1.0
+        },
+        {
+          "name": "PDH Voltage",
+          "type": "Single Number",
+          "properties": {
+            "topic": "/PDH/Voltage",
+            "period": 0.1
+          },
+          "x": 3.5,
+          "y": 0.0,
+          "width": 3.0,
+          "height": 1.0
+        },
+        {
+          "name": "Ch 0",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/0", "period": 0.2},
+          "x": 0.0, "y": 1.5, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 1",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/1", "period": 0.2},
+          "x": 1.75, "y": 1.5, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 2",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/2", "period": 0.2},
+          "x": 3.5, "y": 1.5, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 3",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/3", "period": 0.2},
+          "x": 5.25, "y": 1.5, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 4",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/4", "period": 0.2},
+          "x": 7.0, "y": 1.5, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 5",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/5", "period": 0.2},
+          "x": 8.75, "y": 1.5, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 6",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/6", "period": 0.2},
+          "x": 10.5, "y": 1.5, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 7",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/7", "period": 0.2},
+          "x": 12.25, "y": 1.5, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 8",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/8", "period": 0.2},
+          "x": 14.0, "y": 1.5, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 9",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/9", "period": 0.2},
+          "x": 15.75, "y": 1.5, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 10",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/10", "period": 0.2},
+          "x": 0.0, "y": 3.0, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 11",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/11", "period": 0.2},
+          "x": 1.75, "y": 3.0, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 12",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/12", "period": 0.2},
+          "x": 3.5, "y": 3.0, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 13",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/13", "period": 0.2},
+          "x": 5.25, "y": 3.0, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 14",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/14", "period": 0.2},
+          "x": 7.0, "y": 3.0, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Ch 15",
+          "type": "Single Number",
+          "properties": {"topic": "/PDH/Channel/15", "period": 0.2},
+          "x": 8.75, "y": 3.0, "width": 1.5, "height": 1.0
+        },
+        {
+          "name": "Battery",
+          "type": "Single Number",
+          "properties": {"topic": "/SmartDashboard/Battery", "period": 0.2},
+          "x": 10.5, "y": 3.0, "width": 1.5, "height": 1.0
+        }
+      ]
+    },
+    {
+      "name": "Vision",
+      "widgets": [
+        {
+          "name": "Limelight",
+          "type": "MJPEG Camera",
+          "properties": {
+            "topic": "/limelight",
+            "period": 0.033
+          },
+          "x": 0.0,
+          "y": 0.0,
+          "width": 6.0,
+          "height": 6.0
+        }
+      ]
+    }
+  ]
+}
