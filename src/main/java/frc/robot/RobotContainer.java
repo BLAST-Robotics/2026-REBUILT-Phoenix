@@ -52,8 +52,8 @@ public class RobotContainer {
     private final Telemetry logger = new Telemetry(MaxSpeed);
 
     // Controllers: driver on port 0, operator on port 1.
-    private final CommandXboxController driver = new CommandXboxController(0);
-    private final CommandXboxController operator = new CommandXboxController(1);
+    private final CommandXboxController driver = new CommandXboxController(1);
+    private final CommandXboxController operator = new CommandXboxController(0);
 
     // Subsystems
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
@@ -117,33 +117,33 @@ public class RobotContainer {
 
         /* ============ Mechanisms (operator) ============ */
         // Intake
-        operator.rightBumper().whileTrue(intake.runRoller(1.0));          // run rollers in
-        operator.leftBumper().whileTrue(intake.runRoller(-0.5));          // reverse rollers (clear jam)
-        operator.a().whileTrue(intake.deploy());                          // deploy intake
-        operator.b().whileTrue(intake.store());                           // stow intake
-        operator.povUp().whileTrue(intake.run(() -> intake.setPivotPercentage(0.3)));   // pivot up
-        operator.povDown().whileTrue(intake.run(() -> intake.setPivotPercentage(-0.3))); // pivot down
-
+        operator.rightBumper().toggleOnTrue((intake.runRoller(0.3)));          // run rollers in
+        operator.leftBumper().toggleOnTrue(intake.runRoller(-0.5));          // reverse rollers (clear jam)
+        //operator.a().whileTrue(intake.deploy());                          // deploy intake
+        //operator.b().whileTrue(intake.store());                           // stow intake
+        //operator.povUp().whileTrue(intake.run(() -> intake.setPivotPercentage(0.3)));   // pivot up
+        //operator.povDown().whileTrue(intake.run(() -> intake.setPivotPercentage(-0.3))); // pivot down
+ 
         // Hopper / agitator
-        operator.y().whileTrue(hopper.runForward());        // feed spheres forward
-        operator.x().whileTrue(hopper.runReverse());        // clear jam
+        //operator.y().whileTrue(hopper.runForward());        // feed spheres forward
+        //operator.x().whileTrue(hopper.runReverse());        // clear jam
 
         // Shooter
-        operator.rightTrigger().whileTrue(shooter.revToRpm(4000.0));      // rev shooter (tune)
-        operator.leftTrigger().whileTrue(shooter.runSpindle(80.0));       // run spindle/fire
-        operator.povRight().whileTrue(shooter.revToRpm(6000.0));          // high setpoint
-        operator.povLeft().whileTrue(shooter.revToRpm(3000.0));           // low setpoint
-
+        operator.povLeft().whileTrue(shooter.revToRpm(-2000.0));      // rev shooter (tune)
+        operator.b().whileTrue(shooter.runSpindle(-100.0));       // run spindle/fire
+        operator.povRight().whileTrue(shooter.revToRpm(-6000.0));          // high setpoint
+        //operator.povLeft().whileTrue(shooter.revToRpm(-3000.0));           // low setpoint
+        operator.a().whileTrue(shooter.stopAll());
         // Hood
-        operator.rightTrigger().whileTrue(hood.setAngle(35.0));           // shoot angle (tune)
+        //operator.rightTrigger().whileTrue(hood.setAngle(35.0));           // shoot angle (tune)
 
         // Aiming (uses Limelight pose -> interpolating tables).
-        operator.povUp().whileTrue(new AimAndShoot(drivetrain, hood, shooter));
+        //operator.povUp().whileTrue(new AimAndShoot(drivetrain, hood, shooter));
 
         // Shoot on the move: keeps aiming at the target from the live pose while
         // the robot is driving, firing through the spindle continuously. Hold to
         // keep re-aiming as you travel.
-        operator.start().whileTrue(new ShootOnTheMove(drivetrain, hood, shooter));
+        //operator.start().whileTrue(new ShootOnTheMove(drivetrain, hood, shooter));
 
         /* ============ LEDs ============ */
         RobotModeTriggers.disabled().whileTrue(led.disabledStrobe());

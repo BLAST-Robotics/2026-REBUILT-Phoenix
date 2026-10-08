@@ -9,7 +9,7 @@ public final class Constants {
 
     public static final String CANIVORE = "canivore";
     public static final String RIO_BUS = "rio";
-    public static final CANBus kCANivoreBus = new CANBus(CANIVORE);
+    public static final CANBus kCANivoreBus = new CANBus(RIO_BUS);
 
     public static final class Intake {
         public static final double kPivotGearboxReduction = (5.0 * 3.0 * 3.0); // 45
