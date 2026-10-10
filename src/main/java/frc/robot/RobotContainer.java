@@ -19,9 +19,11 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 
 import frc.robot.commands.AimAndShoot;
+import frc.robot.commands.AimHood;
 import frc.robot.commands.ShootOnTheMove;
 import frc.robot.generated.TunerConstants;
 import frc.robot.logging.FieldZones;
@@ -52,8 +54,52 @@ public class RobotContainer {
     private final Telemetry logger = new Telemetry(MaxSpeed);
 
     // Controllers: driver on port 0, operator on port 1.
-    private final CommandXboxController driver = new CommandXboxController(1);
-    private final CommandXboxController operator = new CommandXboxController(0);
+    private final CommandXboxController driver = new CommandXboxController(0);
+    private final CommandXboxController operator = new CommandXboxController(1);
+
+    // Control set selector (Elastic dropdown): Match vs Test bench controls.
+    private final SendableChooser<String> controlMode = new SendableChooser<>();
+    private final Trigger testControls = new Trigger(() -> "Test".equals(controlMode.getSelected()));
+    private final Trigger matchControls = testControls.negate();
+
+    // Test-mode setpoints (signs match the match bindings).
+    private static final double kTestShooterHighRpm = -6000.0;
+    private static final double kTestShooterLowRpm = -2000.0;
+    private static final double kTestSpindleRps = -40.0;
+
+    // Competition shot: drum RPM + spindle + feed, all at once.
+    private static final double kShootRpm = -6000.0;
+    private static final double kShootSpindleRps = -40.0;
+
+    // Intake rollers run at 0.4 duty everywhere.
+    private static final double kIntakeRollerDuty = 0.4;
+
+    // B-button deploy/stow toggle state.
+    private boolean intakeDeployed = false;
+
+    /** 0.3x slow-mode drive request, shared by match hold and test hold. */
+    private SwerveRequest slowDriveRequest() {
+        return drive.withVelocityX(xLimiter.calculate(-driver.getLeftY()) * MaxSpeed * SpeedMultiplier * 0.3)
+            .withVelocityY(yLimiter.calculate(-driver.getLeftX()) * MaxSpeed * SpeedMultiplier * 0.3)
+            .withRotationalRate(rotationalLimiter.calculate(-driver.getRightX()) * MaxAngularRate * SpeedMultiplier * 0.3);
+    }
+
+    /**
+     * Aim-mode drive: X-brake lock while the driver is off the sticks, normal
+     * field-centric drive while they move (shoot on the move), re-locking
+     * when the sticks return to neutral.
+     */
+    private SwerveRequest aimDriveRequest() {
+        double stickActivity = Math.abs(driver.getLeftY())
+            + Math.abs(driver.getLeftX())
+            + Math.abs(driver.getRightX());
+        if (stickActivity > 0.2) {
+            return drive.withVelocityX(xLimiter.calculate(-driver.getLeftY()) * MaxSpeed * SpeedMultiplier)
+                .withVelocityY(yLimiter.calculate(-driver.getLeftX()) * MaxSpeed * SpeedMultiplier)
+                .withRotationalRate(rotationalLimiter.calculate(-driver.getRightX()) * MaxAngularRate * SpeedMultiplier);
+        }
+        return brake;
+    }
 
     // Subsystems
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
@@ -78,6 +124,15 @@ public class RobotContainer {
         autoChooser = AutoBuilder.buildAutoChooser();
         SmartDashboard.putData("Auto Chooser", autoChooser);
 
+        if (Constants.kTestControlsDefaultOnBoot) {
+            controlMode.setDefaultOption("Test", "Test");
+            controlMode.addOption("Match", "Match");
+        } else {
+            controlMode.setDefaultOption("Match", "Match");
+            controlMode.addOption("Test", "Test");
+        }
+        SmartDashboard.putData("Control Mode", controlMode);
+
         pdh.populateDashboard();
         MechanismTriggers.logNames();
     }
@@ -97,45 +152,35 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
-        driver.rightBumper().whileTrue(drivetrain.applyRequest(() ->
-            drive.withVelocityX(xLimiter.calculate(-driver.getLeftY()) * MaxSpeed * SpeedMultiplier * 0.3)
-                .withVelocityY(yLimiter.calculate(-driver.getLeftX()) * MaxSpeed * SpeedMultiplier * 0.3)
-                .withRotationalRate(rotationalLimiter.calculate(-driver.getRightX()) * MaxAngularRate * SpeedMultiplier * 0.3)
-        ));
+        driver.rightBumper().and(matchControls).whileTrue(drivetrain.applyRequest(this::slowDriveRequest));
+        driver.rightBumper().and(testControls).whileTrue(drivetrain.applyRequest(this::slowDriveRequest));
 
         driver.a().whileTrue(drivetrain.applyRequest(() -> brake));
         driver.b().whileTrue(drivetrain.applyRequest(() ->
             point.withModuleDirection(new Rotation2d(-driver.getLeftY(), -driver.getLeftX()))
         ));
-        driver.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
+        driver.leftBumper().and(matchControls).onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
+        driver.leftBumper().and(testControls).onTrue(drivetrain.runOnce(() -> drivetrain.getPigeon2().setYaw(0)));
 
-        // SysId (keep for characterization), still reachable if needed.
-        driver.back().and(driver.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
-        driver.back().and(driver.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
-        driver.start().and(driver.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
-        driver.start().and(driver.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
-
-        /* ============ Mechanisms (operator) ============ */
-        // Intake
-        operator.rightBumper().toggleOnTrue((intake.runRoller(0.3)));          // run rollers in
-        operator.leftBumper().toggleOnTrue(intake.runRoller(-0.5));          // reverse rollers (clear jam)
-        //operator.a().whileTrue(intake.deploy());                          // deploy intake
-        //operator.b().whileTrue(intake.store());                           // stow intake
-        //operator.povUp().whileTrue(intake.run(() -> intake.setPivotPercentage(0.3)));   // pivot up
-        //operator.povDown().whileTrue(intake.run(() -> intake.setPivotPercentage(-0.3))); // pivot down
- 
-        // Hopper / agitator
-        //operator.y().whileTrue(hopper.runForward());        // feed spheres forward
-        //operator.x().whileTrue(hopper.runReverse());        // clear jam
-
-        // Shooter
-        operator.povLeft().whileTrue(shooter.revToRpm(-2000.0));      // rev shooter (tune)
-        operator.b().whileTrue(shooter.runSpindle(-100.0));       // run spindle/fire
-        operator.povRight().whileTrue(shooter.revToRpm(-6000.0));          // high setpoint
-        //operator.povLeft().whileTrue(shooter.revToRpm(-3000.0));           // low setpoint
-        operator.a().whileTrue(shooter.stopAll());
-        // Hood
-        //operator.rightTrigger().whileTrue(hood.setAngle(35.0));           // shoot angle (tune)
+        /* ============ Mechanisms (operator, competition) ============ */
+        // RT: shoot (rev drums + spindle + feed).
+        operator.rightTrigger().and(matchControls).whileTrue(
+            shooter.revToRpm(kShootRpm)
+                .alongWith(shooter.runSpindle(kShootSpindleRps))
+                .alongWith(hopper.runForward()));
+        // LT: intake rollers in.
+        operator.leftTrigger().and(matchControls).whileTrue(intake.runRoller(kIntakeRollerDuty));
+        // B: alternate deploy / stow on each press.
+        operator.b().and(matchControls).onTrue(Commands.runOnce(() -> intakeDeployed = !intakeDeployed)
+            .andThen(Commands.either(intake.deploy(), intake.store(), () -> intakeDeployed)));
+        // RB toggle: aim (hood + drums, NO firing) with X-brake lock.
+        // Move the driver sticks to unlock and drive (shoot on the move);
+        // releasing them re-locks. Toggle off to fully release.
+        operator.rightBumper().and(matchControls).toggleOnTrue(
+            drivetrain.applyRequest(this::aimDriveRequest)
+                .alongWith(new AimHood(drivetrain, hood, shooter)));
+        // X: brake.
+        operator.x().and(matchControls).whileTrue(drivetrain.applyRequest(() -> brake));
 
         // Aiming (uses Limelight pose -> interpolating tables).
         //operator.povUp().whileTrue(new AimAndShoot(drivetrain, hood, shooter));
@@ -144,6 +189,38 @@ public class RobotContainer {
         // the robot is driving, firing through the spindle continuously. Hold to
         // keep re-aiming as you travel.
         //operator.start().whileTrue(new ShootOnTheMove(drivetrain, hood, shooter));
+
+        /* ============ Test controls (Control Mode = Test) ============ */
+        // Shooter high/low: rev drums AND run spindle together.
+        operator.povUp().and(testControls).whileTrue(
+            shooter.revToRpm(kTestShooterHighRpm).alongWith(shooter.runSpindle(kTestSpindleRps)));
+        operator.povDown().and(testControls).whileTrue(
+            shooter.revToRpm(kTestShooterLowRpm).alongWith(shooter.runSpindle(kTestSpindleRps)));
+        // Spindle standalone toggle.
+        operator.povLeft().and(testControls).toggleOnTrue(shooter.runSpindle(kTestSpindleRps));
+        // Stop everything on the shooter.
+        operator.povRight().and(testControls).onTrue(shooter.stopAll());
+
+        // Manual hood (left stick Y) and pivot (right stick Y). Flip the sign
+        // if a direction runs backwards on your mechanism.
+        testControls.and(() -> Math.abs(operator.getLeftY()) > 0.15).whileTrue(
+            hood.runEnd(() -> hood.setHoodPercentage(-operator.getLeftY() * 0.3),
+                () -> hood.setHoodPercentage(0.0)));
+        testControls.and(() -> Math.abs(operator.getRightY()) > 0.15).whileTrue(
+            intake.runEnd(() -> intake.setPivotPercentage(-operator.getRightY() * 0.3),
+                () -> intake.setPivotPercentage(0.0)));
+
+        // Intake deploy / stow.
+        operator.x().and(testControls).whileTrue(intake.deploy());
+        operator.y().and(testControls).whileTrue(intake.store());
+
+        // Hood to ends: B = up (max), A = down/stowed (min).
+        operator.b().and(testControls).whileTrue(hood.setAngle(Constants.Hood.kHoodMaxDegrees));
+        operator.a().and(testControls).whileTrue(hood.setAngle(Constants.Hood.kHoodMinDegrees));
+
+        // Intake roller + agitator.
+        operator.rightBumper().and(testControls).whileTrue(intake.runRoller(kIntakeRollerDuty));
+        operator.rightTrigger().and(testControls).whileTrue(hopper.runForward());
 
         /* ============ LEDs ============ */
         RobotModeTriggers.disabled().whileTrue(led.disabledStrobe());

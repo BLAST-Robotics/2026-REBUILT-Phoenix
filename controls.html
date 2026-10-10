@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026 Phoenix — Controller Map</title>
+<style>
+  :root { --bg: #111418; --panel: #1a1f26; --ink: #e8ecf1; --dim: #9aa4b2;
+          --accent: #f5b301; --test: #35c26e; --bound: #2f81f7; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { padding: 16px 24px 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 20px; margin: 0; }
+  header h1 span { color: var(--dim); font-weight: 400; font-size: 14px; }
+  .modes { display: flex; gap: 8px; }
+  .modes button { background: var(--panel); color: var(--ink); border: 1px solid #333c47;
+    border-radius: 8px; padding: 8px 18px; cursor: pointer; font-size: 14px; }
+  .modes button.on[data-mode="Match"] { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 700; }
+  .modes button.on[data-mode="Test"] { background: var(--test); color: #111; border-color: var(--test); font-weight: 700; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 24px 32px; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+  .pad { background: var(--panel); border-radius: 12px; padding: 16px; }
+  .pad h2 { margin: 0 0 4px; font-size: 16px; }
+  .pad h2 span { color: var(--dim); font-weight: 400; font-size: 13px; }
+  svg.controller { width: 100%; height: auto; display: block; }
+  .legend { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+  .legend li { display: flex; gap: 10px; align-items: baseline; background: #141920;
+    border-radius: 8px; padding: 7px 10px; }
+  .badge { flex: none; min-width: 86px; text-align: center; font-size: 12px; font-weight: 700;
+    background: var(--bound); color: #fff; border-radius: 6px; padding: 2px 8px; }
+  .badge.hold { background: #7a4fd0; }
+  .badge.press { background: #2f81f7; }
+  .badge.toggle { background: #c26e35; }
+  .badge.stick { background: #35c26e; }
+  .legend .kind { color: var(--dim); font-size: 12px; margin-left: auto; flex: none; }
+  footer { padding: 0 24px 24px; color: var(--dim); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>2026 Phoenix <span>controller map — generated from RobotContainer bindings</span></h1>
+  <div class="modes">
+    <button data-mode="Match" class="on">Match</button>
+    <button data-mode="Test">Test</button>
+  </div>
+</header>
+<main>
+  <section class="pad"><h2>Driver <span>port 1</span></h2><div id="driverPad"></div><ul class="legend" id="driverLegend"></ul></section>
+  <section class="pad"><h2>Operator <span>port 0</span></h2><div id="operatorPad"></div><ul class="legend" id="operatorLegend"></ul></section>
+</main>
+<footer>Badge colors: blue = press · purple = hold · orange = toggle · green = stick axis. Unbound inputs are dimmed on the diagram.</footer>
+
+<script>
+// ---------------------------------------------------------------------------
+// Binding data. kind: press | hold | toggle | stick. pos: badge anchor on the
+// 800x460 SVG canvas. Keep in sync with RobotContainer.configureBindings().
+// ---------------------------------------------------------------------------
+const SVG_W = 800, SVG_H = 460;
+const INPUTS = {
+  lb:       { x: 200, y: 96,  label: "LB" },
+  rb:       { x: 600, y: 96,  label: "RB" },
+  lt:       { x: 268, y: 52,  label: "LT" },
+  rt:       { x: 532, y: 52,  label: "RT" },
+  back:     { x: 330, y: 190, label: "Ξ" },
+  start:    { x: 470, y: 190, label: "☰" },
+  ljoy:     { x: 268, y: 268, label: "LS" },
+  rjoy:     { x: 470, y: 348, label: "RS" },
+  pov:      { x: 330, y: 340, label: "POV" },
+  a:        { x: 560, y: 330, label: "A" },
+  b:        { x: 612, y: 278, label: "B" },
+  x:        { x: 508, y: 278, label: "X" },
+  y:        { x: 560, y: 226, label: "Y" },
+};
+const BINDINGS = {
+  driver: {
+    Match: [
+      { in: "ljoy", kind: "stick",  name: "Drive",        desc: "field-centric translate" },
+      { in: "rjoy", kind: "stick",  name: "Rotate",       desc: "field-centric rotation" },
+      { in: "rb",   kind: "hold",   name: "Slow 0.3x",    desc: "hold for slow mode" },
+      { in: "lb",   kind: "press",  name: "Seed heading", desc: "re-seed field-centric" },
+      { in: "a",    kind: "hold",   name: "Brake",        desc: "X-pattern brake" },
+      { in: "b",    kind: "hold",   name: "Point wheels", desc: "point at left-stick dir" },
+    ],
+    Test: [
+      { in: "ljoy", kind: "stick",  name: "Drive",        desc: "field-centric translate" },
+      { in: "rjoy", kind: "stick",  name: "Rotate",       desc: "field-centric rotation" },
+      { in: "rb",   kind: "hold",   name: "Slow 0.3x",    desc: "hold for slow mode" },
+      { in: "lb",   kind: "press",  name: "Gyro reset",   desc: "zero Pigeon 2 yaw" },
+      { in: "a",    kind: "hold",   name: "Brake",        desc: "X-pattern brake" },
+      { in: "b",    kind: "hold",   name: "Point wheels", desc: "point at left-stick dir" },
+    ],
+  },
+  operator: {
+    Match: [
+      { in: "rt", kind: "hold",  name: "SHOOT",        desc: "drums −6000 + spindle −40 + feed" },
+      { in: "lt", kind: "hold",  name: "Intake",       desc: "rollers in 0.4" },
+      { in: "b",  kind: "press", name: "Deploy/Stow",  desc: "alternates each press" },
+      { in: "rb", kind: "toggle",  name: "Aim + lock",   desc: "X-brake; driver sticks unlock to shoot on move, release re-locks" },
+      { in: "x",  kind: "hold",  name: "Brake",        desc: "X-pattern brake" },
+    ],
+    Test: [
+      { in: "pov", kind: "press",  name: "POV U/D",     desc: "shooter high −6000 / low −2000 + spindle" },
+      { in: "pov", kind: "toggle", name: "POV L",       desc: "spindle standalone toggle" },
+      { in: "pov", kind: "press",  name: "POV R",       desc: "stop all shooter" },
+      { in: "ljoy", kind: "stick", name: "Hood",        desc: "manual ±30%" },
+      { in: "rjoy", kind: "stick", name: "Pivot",       desc: "manual ±30%" },
+      { in: "x",   kind: "press",  name: "Deploy",      desc: "intake deploy" },
+      { in: "y",   kind: "press",  name: "Stow",        desc: "intake stow" },
+      { in: "b",   kind: "hold",   name: "Hood up",     desc: "to max −1°" },
+      { in: "a",   kind: "hold",   name: "Hood down",   desc: "to min −21° (stowed)" },
+      { in: "rb",  kind: "hold",   name: "Intake",      desc: "rollers in 0.4" },
+      { in: "rt",  kind: "hold",   name: "Agitator",    desc: "hopper forward" },
+    ],
+  },
+};
+
+// ---------------------------------------------------------------------------
+// SVG controller renderer (pure inline SVG built with JS — no dependencies).
+// ---------------------------------------------------------------------------
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e);
+  return e;
+}
+function renderPad(mount, boundInputs) {
+  const svg = el("svg", { viewBox: `0 0 ${SVG_W} ${SVG_H}`, class: "controller" }, mount);
+  const on = (id) => boundInputs.has(id);
+  const btn = (id, shape) => {
+    const p = INPUTS[id], g = el("g", {}, svg);
+    const fill = on(id) ? "#2f81f7" : "#2a313b", stroke = on(id) ? "#9ec5ff" : "#454f5c";
+    if (shape === "circle") el("circle", { cx: p.x, cy: p.y, r: 26, fill, stroke, "stroke-width": 2 }, g);
+    if (shape === "rect") el("rect", { x: p.x - 52, y: p.y - 18, width: 104, height: 36, rx: 10, fill, stroke, "stroke-width": 2 }, g);
+    if (shape === "stick") { el("circle", { cx: p.x, cy: p.y, r: 44, fill: "#1c222b", stroke: "#454f5c", "stroke-width": 2 }, g);
+      el("circle", { cx: p.x, cy: p.y, r: 26, fill, stroke, "stroke-width": 2 }, g); }
+    if (shape === "pov") { el("rect", { x: p.x - 30, y: p.y - 30, width: 60, height: 60, rx: 8, fill: "#1c222b", stroke: "#454f5c", "stroke-width": 2 }, g);
+      el("circle", { cx: p.x, cy: p.y, r: 16, fill, stroke, "stroke-width": 2 }, g); }
+    const t = el("text", { x: p.x, y: p.y + 6, "text-anchor": "middle", fill: on(id) ? "#fff" : "#79838f",
+      "font-size": shape === "rect" ? 20 : 22, "font-weight": "bold" }, g);
+    t.textContent = p.label;
+  };
+  // body
+  el("path", { d: "M150 130 Q150 90 200 90 L600 90 Q650 90 650 130 L700 330 Q706 380 660 380 Q620 380 600 330 L560 230 Q400 200 240 230 L200 330 Q180 380 140 380 Q94 380 100 330 Z",
+    fill: "#222932", stroke: "#454f5c", "stroke-width": 2 }, svg);
+  btn("lt", "rect"); btn("rt", "rect"); btn("lb", "rect"); btn("rb", "rect");
+  btn("back", "circle"); btn("start", "circle");
+  btn("ljoy", "stick"); btn("rjoy", "stick"); btn("pov", "pov");
+  btn("a", "circle"); btn("b", "circle"); btn("x", "circle"); btn("y", "circle");
+  el("circle", { cx: 400, cy: 190, r: 20, fill: "#1c222b", stroke: "#454f5c", "stroke-width": 2 }, svg);
+}
+function render(mode) {
+  for (const pad of ["driver", "operator"]) {
+    const list = BINDINGS[pad][mode];
+    const bound = new Set(list.map((b) => b.in));
+    const mount = document.getElementById(pad + "Pad");
+    mount.innerHTML = "";
+    renderPad(mount, bound);
+    const ul = document.getElementById(pad + "Legend");
+    ul.innerHTML = "";
+    for (const b of list) {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="badge ${b.kind}">${INPUTS[b.in].label} · ${b.name}</span><span>${b.desc}</span><span class="kind">${b.kind}</span>`;
+      ul.appendChild(li);
+    }
+  }
+  document.querySelectorAll(".modes button").forEach((btn) =>
+    btn.classList.toggle("on", btn.dataset.mode === mode));
+}
+document.querySelectorAll(".modes button").forEach((btn) =>
+  btn.addEventListener("click", () => render(btn.dataset.mode)));
+render("Match");
+</script>
+</body>
+</html>

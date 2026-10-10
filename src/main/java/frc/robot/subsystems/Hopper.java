@@ -14,6 +14,8 @@ import frc.robot.hardware.MotorConfigs;
 public class Hopper extends SubsystemBase {
     private final TalonFX m_agitator;
 
+    private double m_agitatorTargetRps = 0.0;
+
     public Hopper() {
         m_agitator = new TalonFX(Constants.old.Hopper.kAgitator, Constants.kCANivoreBus);
         MotorConfigs.applyVelocityConfig(m_agitator, Constants.Hopper.kAgitatorInverted,
@@ -24,6 +26,7 @@ public class Hopper extends SubsystemBase {
 
 /** Sets agitator velocity in mechanism RPS. */
     public void setAgitatorRps(double rps) {
+        m_agitatorTargetRps = rps;
         double motorRps = MotorConfigs.outputToMotorRps(rps, Constants.Hopper.kAgitatorReduction);
         m_agitator.setControl(new VelocityVoltage(motorRps));
     }
@@ -47,8 +50,14 @@ public class Hopper extends SubsystemBase {
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Hopper/AgitatorRPS",
-            m_agitator.getVelocity().getValueAsDouble() / Constants.Hopper.kAgitatorReduction);
+        double agitatorRps = m_agitator.getVelocity().getValueAsDouble()
+            / Constants.Hopper.kAgitatorReduction;
+        SmartDashboard.putNumber("Hopper/AgitatorRPS", agitatorRps);
+        SmartDashboard.putNumber("Hopper/AgitatorTargetRPS", m_agitatorTargetRps);
+        SmartDashboard.putBoolean("Hopper/AgitatorAtSpeed",
+            m_agitatorTargetRps != 0 && Math.abs(m_agitatorTargetRps - agitatorRps) < 3.0);
         SmartDashboard.putNumber("Hopper/AgitatorCur", m_agitator.getStatorCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Hopper/AgitatorSupplyCur", m_agitator.getSupplyCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Hopper/AgitatorTempC", m_agitator.getDeviceTemp().getValueAsDouble());
     }
 }

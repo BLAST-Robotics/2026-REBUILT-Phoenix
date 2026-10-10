@@ -18,6 +18,8 @@ public class Intake extends SubsystemBase {
     private final TalonFX m_roller;
     private final TalonFX m_pivot;
 
+    private double m_pivotTargetRot = 0.0;
+
     public Intake() {
 m_roller = new TalonFX(Constants.old.Intake.kRoller, Constants.kCANivoreBus);
         m_pivot = new TalonFX(Constants.old.Intake.kPivot, Constants.kCANivoreBus);
@@ -29,7 +31,8 @@ m_roller = new TalonFX(Constants.old.Intake.kRoller, Constants.kCANivoreBus);
         MotorConfigs.applyPivotConfig(m_pivot, pivotEncoder,
             Constants.Intake.kPivotInverted, Constants.Intake.kPivotSupplyLimit, Constants.Intake.kPivotStatorLimit,
             Constants.Intake.kPivotTotalReduction,
-            Constants.Intake.kPivotReverseSoftLimitRot, Constants.Intake.kPivotForwardSoftLimitRot);
+            Constants.Intake.kPivotReverseSoftLimitRot, Constants.Intake.kPivotForwardSoftLimitRot,
+            Constants.Intake.kPivotEncoderOffset);
     }
 
 /** Positive percent pulls spheres in. */
@@ -44,6 +47,7 @@ m_roller = new TalonFX(Constants.old.Intake.kRoller, Constants.kCANivoreBus);
 
     /** Move pivot to a target output rotation using Motion Magic. */
     public void setPivotTarget(double outputRotations) {
+        m_pivotTargetRot = outputRotations;
         m_pivot.setControl(new PositionVoltage(Rotations.of(outputRotations)));
     }
 
@@ -56,12 +60,12 @@ m_roller = new TalonFX(Constants.old.Intake.kRoller, Constants.kCANivoreBus);
     }
 
     public Command deploy() {
-        return runOnce(() -> setPivotTarget(Constants.Intake.kPivotMaxRotations))
-            .andThen(run(() -> setRollerPercentage(1.0)));
+        return runOnce(() -> setPivotTarget(Constants.Intake.kPivotDeployedRot))
+            .andThen(run(() -> setRollerPercentage(0.4)));
     }
 
     public Command store() {
-        return runOnce(() -> setPivotTarget(Constants.Intake.kPivotMinRotations))
+        return runOnce(() -> setPivotTarget(Constants.Intake.kPivotStowedRot))
             .andThen(run(() -> setRollerPercentage(0.0)));
     }
 
@@ -71,8 +75,19 @@ m_roller = new TalonFX(Constants.old.Intake.kRoller, Constants.kCANivoreBus);
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Intake/PivotRot", getPivotOutputRotations());
+        double pivotRot = getPivotOutputRotations();
+        SmartDashboard.putNumber("Intake/PivotRot", pivotRot);
+        SmartDashboard.putNumber("Intake/PivotTargetRot", m_pivotTargetRot);
+        SmartDashboard.putBoolean("Intake/PivotAtTarget",
+            Math.abs(pivotRot - m_pivotTargetRot) < 0.01);
+        SmartDashboard.putBoolean("Intake/Deployed",
+            Math.abs(pivotRot - Constants.Intake.kPivotDeployedRot) < 0.02);
         SmartDashboard.putNumber("Intake/RollCur", m_roller.getStatorCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Intake/RollSupplyCur", m_roller.getSupplyCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Intake/RollRPS", m_roller.getVelocity().getValueAsDouble());
+        SmartDashboard.putNumber("Intake/RollOut", m_roller.getDutyCycle().getValueAsDouble());
         SmartDashboard.putNumber("Intake/PivotCur", m_pivot.getStatorCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Intake/PivotSupplyCur", m_pivot.getSupplyCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Intake/PivotTempC", m_pivot.getDeviceTemp().getValueAsDouble());
     }
 }

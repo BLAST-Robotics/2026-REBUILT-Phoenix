@@ -20,6 +20,9 @@ public class Shooter extends SubsystemBase {
     private final TalonFX m_drumRight;
     private final TalonFX m_spindle;
 
+    private double m_drumTargetRpm = 0.0;
+    private double m_spindleTargetRps = 0.0;
+
     public Shooter() {
         m_drumLeft = new TalonFX(Constants.old.Shooter.kDrumLeft, Constants.kCANivoreBus);
         m_drumRight = new TalonFX(Constants.old.Shooter.kDrumRight, Constants.kCANivoreBus);
@@ -43,6 +46,7 @@ public class Shooter extends SubsystemBase {
 
     /** Set drum speed in mechanism RPM. */
     public void setDrumRpm(double rpm) {
+        m_drumTargetRpm = rpm;
         double motorRps = MotorConfigs.outputToMotorRps(rpm / 60.0, Constants.Shooter.kDrumGearReduction);
         m_drumLeft.setControl(new VelocityVoltage(motorRps));
         m_drumRight.setControl(new VelocityVoltage(motorRps));
@@ -50,6 +54,7 @@ public class Shooter extends SubsystemBase {
 
     /** Set spindle (internal roller) speed in mechanism RPS. */
     public void setSpindleRps(double rps) {
+        m_spindleTargetRps = rps;
         double motorRps = MotorConfigs.outputToMotorRps(rps, Constants.Shooter.kSpindleReduction);
         m_spindle.setControl(new VelocityVoltage(motorRps));
     }
@@ -84,12 +89,37 @@ public class Shooter extends SubsystemBase {
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Shooter/DrumRPM",
-            m_drumLeft.getVelocity().getValueAsDouble() * 60.0 / Constants.Shooter.kDrumGearReduction);
+        double drumLeftRpm = m_drumLeft.getVelocity().getValueAsDouble() * 60.0
+            / Constants.Shooter.kDrumGearReduction;
+        double drumRightRpm = m_drumRight.getVelocity().getValueAsDouble() * 60.0
+            / Constants.Shooter.kDrumGearReduction;
+        double drumAvgRpm = (drumLeftRpm + drumRightRpm) / 2.0;
+        double spindleRps = m_spindle.getVelocity().getValueAsDouble()
+            / Constants.Shooter.kSpindleReduction;
+
+        SmartDashboard.putNumber("Shooter/DrumRPM", drumAvgRpm);
+        SmartDashboard.putNumber("Shooter/DrumTargetRPM", m_drumTargetRpm);
+        SmartDashboard.putNumber("Shooter/DrumErrorRPM", m_drumTargetRpm - drumAvgRpm);
+        SmartDashboard.putBoolean("Shooter/DrumAtSpeed",
+            m_drumTargetRpm > 0 && Math.abs(m_drumTargetRpm - drumAvgRpm) < 100.0);
+        SmartDashboard.putNumber("Shooter/DrumLeftRPM", drumLeftRpm);
+        SmartDashboard.putNumber("Shooter/DrumRightRPM", drumRightRpm);
         SmartDashboard.putNumber("Shooter/DrumCur",
             m_drumLeft.getStatorCurrent().getValueAsDouble()
                 + m_drumRight.getStatorCurrent().getValueAsDouble());
-        SmartDashboard.putNumber("Shooter/SpindleRPS",
-            m_spindle.getVelocity().getValueAsDouble() / Constants.Shooter.kSpindleReduction);
+        SmartDashboard.putNumber("Shooter/DrumSupplyCur",
+            m_drumLeft.getSupplyCurrent().getValueAsDouble()
+                + m_drumRight.getSupplyCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Shooter/DrumTempC",
+            m_drumLeft.getDeviceTemp().getValueAsDouble());
+        SmartDashboard.putNumber("Shooter/SpindleRPS", spindleRps);
+        SmartDashboard.putNumber("Shooter/SpindleTargetRPS", m_spindleTargetRps);
+        SmartDashboard.putNumber("Shooter/SpindleErrorRPS", m_spindleTargetRps - spindleRps);
+        SmartDashboard.putBoolean("Shooter/SpindleAtSpeed",
+            m_spindleTargetRps > 0 && Math.abs(m_spindleTargetRps - spindleRps) < 5.0);
+        SmartDashboard.putNumber("Shooter/SpindleCur",
+            m_spindle.getStatorCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Shooter/SpindleTempC",
+            m_spindle.getDeviceTemp().getValueAsDouble());
     }
 }

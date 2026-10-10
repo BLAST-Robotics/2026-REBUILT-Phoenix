@@ -8,9 +8,13 @@ import com.ctre.phoenix6.HootAutoReplay;
 
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.net.WebServer;
+
+import frc.robot.util.Elastic;
 
 public class Robot extends TimedRobot {
     private Command m_autonomousCommand;
@@ -27,6 +31,9 @@ public class Robot extends TimedRobot {
         // Elastic/AvantageScope to open.
         DataLogManager.start();
         DriverStation.startDataLog(DataLogManager.getLog());
+        // Serve the deploy directory (elastic-layout.json) so Elastic can
+        // download the layout via File > Load Layout From Robot (Ctrl+D).
+        WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
         m_robotContainer = new RobotContainer();
     }
 
@@ -47,6 +54,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void autonomousInit() {
+        Elastic.selectTab("Driver");
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
         if (m_autonomousCommand != null) {
@@ -62,6 +70,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void teleopInit() {
+        Elastic.selectTab("Driver");
         if (m_autonomousCommand != null) {
             CommandScheduler.getInstance().cancel(m_autonomousCommand);
         }

@@ -71,9 +71,10 @@ public final class MotorConfigs {
         double statorLimit,
         double totalReduction,
         double reverseLimitPos,
-        double forwardLimitPos
+        double forwardLimitPos,
+        double encoderOffsetRotations
     ) {
-        encodeAbsolute(encoder, false);
+        encodeAbsolute(encoder, false, encoderOffsetRotations);
 
         TalonFXConfiguration cfg = new TalonFXConfiguration()
             .withSlot0(new Slot0Configs()
@@ -138,12 +139,15 @@ public final class MotorConfigs {
         motor.getConfigurator().apply(cfg);
     }
 
-    /** Makes the absolute CANcoder read 0 at startup (so output 0 == stowed). */
-    public static void encodeAbsolute(CANcoder encoder, boolean inverted) {
+    /** Makes the absolute CANcoder read a known value at the calibration pose.
+     *  Pass the offset measured on the bench (see Hood/pivot calibration
+     *  procedure) so limits are valid immediately at boot. */
+    public static void encodeAbsolute(CANcoder encoder, boolean inverted, double offsetRotations) {
         encoder.getConfigurator().apply(new CANcoderConfiguration()
             .withMagnetSensor(
                 new com.ctre.phoenix6.configs.MagnetSensorConfigs()
                     .withAbsoluteSensorDiscontinuityPoint(0.50)
+                    .withMagnetOffset(offsetRotations)
                     .withSensorDirection(inverted
                         ? SensorDirectionValue.Clockwise_Positive
                         : SensorDirectionValue.CounterClockwise_Positive)));

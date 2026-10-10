@@ -11,9 +11,12 @@ public final class Constants {
     public static final String RIO_BUS = "rio";
     public static final CANBus kCANivoreBus = new CANBus(RIO_BUS);
 
+    /** When true, the Control Mode chooser boots into the Test control set. */
+    public static final boolean kTestControlsDefaultOnBoot = true;
+
     public static final class Intake {
         public static final double kPivotGearboxReduction = (5.0 * 3.0 * 3.0); // 45
-        public static final double kPivotChainReduction = (32.0 / 12.0);
+        public static final double kPivotChainReduction = (36.0 / 12.0);
         public static final double kPivotTotalReduction = kPivotGearboxReduction * kPivotChainReduction;
 
         public static final double kRollerDiameter = Units.inchesToMeters(1.125);
@@ -21,8 +24,12 @@ public final class Constants {
         public static final double kRollerMaxRPS = 60.0;
 
         // Pivot axis is on top, inline with the front module axle.
-        public static final double kPivotMinRotations = 0.0;   // stowed (arm up, over chassis)
-        public static final double kPivotMaxRotations = 0.15;  // deployed (roller down, in front of modules)
+        // Measured on-robot 10/10 (flexible hard stops: readings sit ~0.5 deg
+        // inside the absolute max, soft limits pad back out by that 0.5 deg).
+        public static final double kPivotStowedRot = -0.0022;   // motion target: stowed
+        public static final double kPivotDeployedRot = 0.0054;  // motion target: deployed (roller down)
+        public static final double kPivotMinRotations = kPivotStowedRot - 0.5 / 360.0; // soft limit
+        public static final double kPivotMaxRotations = kPivotDeployedRot + 0.5 / 360.0; // soft limit
         public static final boolean kPivotInverted = false;
         public static final boolean kRollerInverted = false;
 
@@ -36,8 +43,14 @@ public final class Constants {
         public static final double kPivotStatorLimit = 60.0;
         public static final double kPivotVoltageComp = 12.0;
 
-        public static final double kPivotForwardSoftLimitRot = kPivotMaxRotations * kPivotTotalReduction;
-        public static final double kPivotReverseSoftLimitRot = kPivotMinRotations * kPivotTotalReduction;
+        // Soft limits are compared against mechanism rotations (FusedCANcoder
+        // position), so these are raw output rotations with NO reduction scaling.
+        public static final double kPivotForwardSoftLimitRot = kPivotMaxRotations;
+        public static final double kPivotReverseSoftLimitRot = kPivotMinRotations;
+
+        // Bench-calibrated magnet offset (output rotations). 0.0 = uncalibrated.
+        // Datum: fully deployed (roller down). See calibration procedure.
+        public static final double kPivotEncoderOffset = 0.0;
     }
 
     public static final class Hopper {
@@ -63,7 +76,7 @@ public final class Constants {
         public static final double kSpindleReduction = 24.0 / 15.0;
         public static final double kSpindleDiameter = Units.inchesToMeters(1.125);
         public static final double kSpindleCircumference = kSpindleDiameter * Math.PI;
-        public static final double kSpindleMaxRPS = 80.0;
+        public static final double kSpindleMaxRPS = 40.0;
 
         public static final double kDrumKP = 0.1;
         public static final double kDrumKI = 0.0;
@@ -82,16 +95,22 @@ public final class Constants {
 
     public static final class Hood {
         public static final double kDriveStage1 = 24.0 / 15.0;
-        public static final double kDriveStage2 = 30.0 / 18.0;
+        public static final double kDriveStage2 = 32.0 / 16.0;
         public static final double kDriveStage3 = 153.0 / 10.0;
         public static final double kHoodTotalReduction = kDriveStage1 * kDriveStage2 * kDriveStage3;
 
-        public static final double kHoodMinDegrees = 0.0;
-        public static final double kHoodMaxDegrees = 85.0;
+        // Measured on-robot (relative encoder, zeros at boot):
+        // -1 deg = minimum, -21 deg = maximum.
+        public static final double kHoodMinDegrees = -21.0;
+        public static final double kHoodMaxDegrees = -1.0;
+
+        // Bench-calibrated magnet offset (output rotations). 0.0 = uncalibrated.
+        // Datum: hood at minimum (-21 deg). See calibration procedure.
+        public static final double kHoodEncoderOffset = 0.0;
         public static final double kHoodMinDeg2Rad = Units.degreesToRadians(kHoodMinDegrees);
         public static final double kHoodMaxDegree2Rad = Units.degreesToRadians(kHoodMaxDegrees);
 
-        public static final boolean kHoodMotorInverted = false;
+        public static final boolean kHoodMotorInverted = true; // clockwise-positive = up
         public static final boolean kHoodEncoderInverted = false;
         public static final double kHoodDegreesPerRotation = 360.0; // through-bore = 1 rot = 360 deg
 

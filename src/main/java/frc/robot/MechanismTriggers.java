@@ -23,7 +23,7 @@ public final class MechanismTriggers {
         // Intake
         NamedCommands.registerCommand("IntakeDeploy", intake.deploy());
         NamedCommands.registerCommand("IntakeStore", intake.store());
-        NamedCommands.registerCommand("IntakeRoller", intake.runRoller(1.0));
+        NamedCommands.registerCommand("IntakeRoller", intake.runRoller(0.4));
         NamedCommands.registerCommand("IntakeRollerReverse", intake.runRoller(-0.5));
 
         // Hopper / agitator

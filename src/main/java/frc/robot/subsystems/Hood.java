@@ -18,6 +18,8 @@ public class Hood extends SubsystemBase {
     private final TalonFX m_motor;
     private final CANcoder m_encoder;
 
+    private double m_targetDegrees = 0.0;
+
     public Hood() {
         m_motor = new TalonFX(Constants.old.Hood.kMotor, Constants.kCANivoreBus);
         m_encoder = new CANcoder(Constants.old.Hood.kEncoder, Constants.kCANivoreBus);
@@ -26,11 +28,13 @@ public class Hood extends SubsystemBase {
             Constants.Hood.kHoodMotorInverted, Constants.Hood.kHoodSupplyLimit, Constants.Hood.kHoodStatorLimit,
             Constants.Hood.kHoodTotalReduction,
             Constants.Hood.kHoodMinDegrees / 360.0,
-            Constants.Hood.kHoodMaxDegrees / 360.0);
+            Constants.Hood.kHoodMaxDegrees / 360.0,
+            Constants.Hood.kHoodEncoderOffset);
     }
 
     /** Command hood angle in degrees. */
     public void setHoodDegrees(double degrees) {
+        m_targetDegrees = degrees;
         m_motor.setControl(new PositionVoltage(Rotations.of(degrees / 360.0)));
     }
 
@@ -57,7 +61,13 @@ public class Hood extends SubsystemBase {
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Hood/Degrees", getHoodDegrees());
+        double degrees = getHoodDegrees();
+        SmartDashboard.putNumber("Hood/Degrees", degrees);
+        SmartDashboard.putNumber("Hood/TargetDeg", m_targetDegrees);
+        SmartDashboard.putNumber("Hood/ErrorDeg", m_targetDegrees - degrees);
+        SmartDashboard.putBoolean("Hood/AtSetpoint", atSetpoint(m_targetDegrees, 2.0));
         SmartDashboard.putNumber("Hood/MotorCur", m_motor.getStatorCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Hood/SupplyCur", m_motor.getSupplyCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Hood/TempC", m_motor.getDeviceTemp().getValueAsDouble());
     }
 }
