@@ -12,6 +12,7 @@ public class PDHLogger extends SubsystemBase {
 
     // Cache per-channel current so we don't allocate arrays every loop.
     private final double[] m_channelCurrent = new double[17];
+    private int m_loopCount = 0;
 
     public PDHLogger(int canId) {
         m_pdh = new PowerDistribution(canId, ModuleType.kRev);
@@ -19,13 +20,22 @@ public class PDHLogger extends SubsystemBase {
 
     @Override
     public void periodic() {
+        // PDH reads are CAN transactions: 5 Hz is plenty, 50 Hz was choking
+        // the shared rio bus and starving mechanism feedback.
+        if (++m_loopCount % 10 != 0) {
+            return;
+        }
         for (int i = 0; i < m_channelCurrent.length; i++) {
             m_channelCurrent[i] = m_pdh.getCurrent(i);
             SmartDashboard.putNumber("PDH/Channel/" + i, m_channelCurrent[i]);
         }
 
         SmartDashboard.putNumber("PDH/TotalCurrent", m_pdh.getTotalCurrent());
-        SmartDashboard.putNumber("PDH/Voltage", m_pdh.getVoltage());
+        // Battery voltage from the RIO (always valid) — NOT the PDH object,
+        // whose CAN ID is still unconfirmed (constructor todo). A missing PDH
+        // would otherwise leave this topic dead and spam failed CAN reads.
+        SmartDashboard.putNumber("PDH/Voltage",
+            edu.wpi.first.wpilibj.RobotController.getBatteryVoltage());
 
         // Log to the loop output file for post-match debugging.
         DataLogManager.log("PDH total current: " + m_pdh.getTotalCurrent()

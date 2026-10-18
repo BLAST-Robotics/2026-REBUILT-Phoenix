@@ -17,11 +17,14 @@ public class Hopper extends SubsystemBase {
     private double m_agitatorTargetRps = 0.0;
 
     public Hopper() {
-        m_agitator = new TalonFX(Constants.old.Hopper.kAgitator, Constants.kCANivoreBus);
+        m_agitator = new TalonFX(Constants.ID.kAgitator, Constants.kCANBus);
         MotorConfigs.applyVelocityConfig(m_agitator, Constants.Hopper.kAgitatorInverted,
             Constants.Hopper.kAgitatorSupplyLimit, Constants.Hopper.kAgitatorStatorLimit,
             Constants.Hopper.kAgitatorKP, Constants.Hopper.kAgitatorKI, Constants.Hopper.kAgitatorKD,
             0.0, 0.0);
+
+        // Agitator coasts always; only pivots ever brake.
+        m_agitator.setNeutralMode(com.ctre.phoenix6.signals.NeutralModeValue.Coast);
     }
 
 /** Sets agitator velocity in mechanism RPS. */
@@ -39,6 +42,17 @@ public class Hopper extends SubsystemBase {
         return run(() -> setAgitatorRps(Constants.Hopper.kAgitatorMaxRPS));
     }
 
+    /**
+     * Match feed: idle trickle until the drums are up to speed, then full
+     * feed. Reads (not requires) the shooter, so it parallels shootAtRpm.
+     * Ends back at idle (same held-request rule as the drums).
+     */
+    public Command feedWhenReady(frc.robot.subsystems.Shooter shooter,
+            double idleRps, double shootRps) {
+        return runEnd(() -> setAgitatorRps(shooter.feedReady() ? shootRps : idleRps),
+            () -> setAgitatorRps(idleRps));
+    }
+
     /** Reverse the agitator (jams / clearing). */
     public Command runReverse() {
         return run(() -> setAgitatorRps(-Constants.Hopper.kAgitatorMaxRPS * 0.5));
@@ -46,6 +60,18 @@ public class Hopper extends SubsystemBase {
 
     public Command stop() {
         return runOnce(() -> setAgitatorPercentage(0.0));
+    }
+
+    /** Full neutral: zero output + honest target. */
+    public void killOutputs() {
+        m_agitatorTargetRps = 0.0;
+        setAgitatorPercentage(0.0);
+    }
+
+    /** Disabled-state hold: neutralize once, then re-assert zero every loop. */
+    public Command coastHold() {
+        return runOnce(this::killOutputs)
+            .andThen(run(() -> setAgitatorPercentage(0.0)));
     }
 
     @Override

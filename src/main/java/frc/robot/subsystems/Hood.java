@@ -2,9 +2,11 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Rotations;
 
-import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
+import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -19,40 +21,129 @@ public class Hood extends SubsystemBase {
     private final CANcoder m_encoder;
 
     private double m_targetDegrees = 0.0;
+    private boolean m_holding = false;
+    private double m_lastPct = 0.0;
+    private double m_smoothRot = 0.0;
+    // Boot-relative datum: captured lazily from the first reading. The robot
+    // must boot with the hood STOWED; that pose becomes delta zero.
+    private boolean m_homed = false;
+    private double m_zeroRot = 0.0;
 
     public Hood() {
-        m_motor = new TalonFX(Constants.old.Hood.kMotor, Constants.kCANivoreBus);
-        m_encoder = new CANcoder(Constants.old.Hood.kEncoder, Constants.kCANivoreBus);
+        m_motor = new TalonFX(Constants.ID.kHoodMotor, Constants.kCANBus);
+        m_encoder = new CANcoder(Constants.ID.kHoodEncoder, Constants.kCANBus);
 
+        // Motor + sensor BOTH clockwise-positive (flipped in config, no code
+        // signs): +output drives deploy-ward with +readings.
         MotorConfigs.applyPivotConfig(m_motor, m_encoder,
-            Constants.Hood.kHoodMotorInverted, Constants.Hood.kHoodSupplyLimit, Constants.Hood.kHoodStatorLimit,
-            Constants.Hood.kHoodTotalReduction,
-            Constants.Hood.kHoodMinDegrees / 360.0,
-            Constants.Hood.kHoodMaxDegrees / 360.0,
-            Constants.Hood.kHoodEncoderOffset);
+            InvertedValue.Clockwise_Positive,
+            Constants.Hood.kHoodSupplyLimit, Constants.Hood.kHoodStatorLimit,
+            Constants.Hood.kHoodTotalReduction, 1.0, // CANcoder on motor shaft
+            -0.5, 0.5, // Talon soft limits parked wide open; code enforces the delta window
+            Constants.Hood.kHoodEncoderOffset, true, true);
+        // Full PID + gravity hold. Gains live in Constants.Hood so the bench
+        // tune doesn't require touching code. Brake neutral mode comes from
+        // applyPivotConfig (all mechanism motors brake when idle).
+        m_motor.getConfigurator().apply(new com.ctre.phoenix6.configs.Slot0Configs()
+            .withKP(Constants.Hood.kHoodKP)
+            .withKI(Constants.Hood.kHoodKI)
+            .withKD(Constants.Hood.kHoodKD)
+            .withKS(Constants.Hood.kHoodKS)
+            .withKV(Constants.Hood.kHoodKV)
+            .withKG(Constants.Hood.kHoodKG)
+            .withGravityType(com.ctre.phoenix6.signals.GravityTypeValue.Elevator_Static)
+            .withStaticFeedforwardSign(
+                com.ctre.phoenix6.signals.StaticFeedforwardSignValue.UseClosedLoopSign));
+        // Physics cap: motor tops ~100 rot/s ÷ 29.6 ≈ 3.4 mech rot/s.
+        // Demanding cruise 10 saturated the output permanently (bang-bang
+        // stutter + crawl). A trackable profile is faster in practice.
+        m_motor.getConfigurator().apply(new MotionMagicConfigs()
+            .withMotionMagicCruiseVelocity(2.5)
+            .withMotionMagicAcceleration(15.0)
+            .withMotionMagicJerk(60.0));
+        // Rio-bus CAN relief: auxiliaries don't need 100 Hz feedback.
+        m_motor.getPosition().setUpdateFrequency(50);
+        m_motor.getVelocity().setUpdateFrequency(20);
+        m_encoder.getAbsolutePosition().setUpdateFrequency(50);
+
+        // Elastic reset button: re-capture datum live (stow by hand first).
+        SmartDashboard.putData("Reset Hood", rehomeCommand());
     }
 
-    /** Command hood angle in degrees. */
+    /**
+     * Drive to a delta angle (0 = boot/stowed pose, + = deploy-ward) with
+     * Talon MotionMagic. The code-P layers are gone: they were scaffolding
+     * around CAN starvation (PDH @50 Hz + full-rate swerve aux), since fixed
+     * at the source — and the pivot proves the hardware loop flies on this
+     * bus. Target = boot datum + delta; clamped centrally.
+     */
     public void setHoodDegrees(double degrees) {
+        ensureHomed();
+        degrees = Math.max(0.0, Math.min(Constants.Hood.kHoodTravelDegrees, degrees));
         m_targetDegrees = degrees;
-        m_motor.setControl(new PositionVoltage(Rotations.of(degrees / 360.0)));
+        m_motor.setControl(new MotionMagicVoltage(
+            Rotations.of(m_zeroRot + degrees / 360.0)));
+    }
+
+    /** Re-capture the current pose as delta zero (no power cycle needed). */
+    public Command rehomeCommand() {
+        return runOnce(() -> {
+            m_zeroRot = m_motor.getPosition().getValueAsDouble();
+            m_smoothRot = 0.0;
+            m_targetDegrees = 0.0;
+            m_holding = false;
+            m_lastPct = 0.0;
+            m_homed = true;
+        });
+    }
+
+    /** Capture boot pose as delta zero. Must boot STOWED. */
+    private void ensureHomed() {
+        if (!m_homed) {
+            m_zeroRot = m_motor.getPosition().getValueAsDouble();
+            m_smoothRot = 0.0;
+            m_homed = true;
+        }
     }
 
     public void setHoodPercentage(double percent) {
         m_motor.set(percent);
     }
 
-    /** Current hood angle in degrees. */
+    /**
+     * Disabled-state hold: set coast once, then re-assert zero output every
+     * loop so a persisting MotionMagic request can't keep holding position.
+     */
+    public Command coastHold() {
+        return runOnce(() -> setBrakeMode(false))
+            .andThen(run(() -> setHoodPercentage(0.0)));
+    }
+
+    /** Brake (true) or coast (false) the hood pivot on demand. */
+    public void setBrakeMode(boolean brake) {
+        m_motor.setNeutralMode(brake
+            ? com.ctre.phoenix6.signals.NeutralModeValue.Brake
+            : com.ctre.phoenix6.signals.NeutralModeValue.Coast);
+    }
+
+    /** Current hood angle in DELTA degrees (0 = boot/stowed pose). */
     public double getHoodDegrees() {
-        return m_motor.getPosition().getValueAsDouble() * 360.0;
+        ensureHomed();
+        return (m_motor.getPosition().getValueAsDouble() - m_zeroRot) * 360.0;
     }
 
     public boolean atSetpoint(double degrees, double tolerance) {
         return Math.abs(getHoodDegrees() - degrees) < tolerance;
     }
 
+    /** True when holding the current target (arrival band). */
+    public boolean hoodAtTarget() {
+        return atSetpoint(m_targetDegrees, 3.0);
+    }
+
+    /** Hold-to-run to an angle (same shape as the working manual jog). */
     public Command setAngle(double degrees) {
-        return run(() -> setHoodDegrees(degrees)).until(() -> atSetpoint(degrees, 2.0));
+        return runEnd(() -> setHoodDegrees(degrees), () -> setHoodPercentage(0.0));
     }
 
     public Command stop() {
@@ -69,5 +160,9 @@ public class Hood extends SubsystemBase {
         SmartDashboard.putNumber("Hood/MotorCur", m_motor.getStatorCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Hood/SupplyCur", m_motor.getSupplyCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Hood/TempC", m_motor.getDeviceTemp().getValueAsDouble());
+        SmartDashboard.putBoolean("Hood/Homed", m_homed);
+        var hoodFault = m_motor.getFault_ReverseSoftLimit().getValue()
+            || m_motor.getFault_ForwardSoftLimit().getValue();
+        SmartDashboard.putBoolean("Hood/SoftLimitFault", hoodFault);
     }
 }

@@ -1,7 +1,6 @@
 package frc.robot;
 
 import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /** Maps distance-to-target to hood angle and shooter RPM. */
 public final class AimTables {
@@ -25,15 +24,11 @@ public final class AimTables {
 
     /** Hood angle (degrees) for a given distance-to-target (meters). */
     public double hoodDegreesForDistance(double distance) {
-        double v = m_hoodDegrees.get(distance);
-        SmartDashboard.putNumber("Aim/HoodDeg", v);
-        return v;
+        return m_hoodDegrees.get(distance);
     }
 
     /** Shooter RPM for a given distance-to-target (meters). */
     public double shooterRpmForDistance(double distance) {
-        double v = m_shooterRpm.get(distance);
-        SmartDashboard.putNumber("Aim/DrumRPM", v);
-        return v;
+        return m_shooterRpm.get(distance);
     }
 }

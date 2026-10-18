@@ -69,21 +69,72 @@ public final class MotorConfigs {
         boolean motorInverted,
         double supplyLimit,
         double statorLimit,
-        double totalReduction,
+        double sensorToMechanismRatio,
+        double rotorToSensorRatio,
         double reverseLimitPos,
         double forwardLimitPos,
         double encoderOffsetRotations
     ) {
-        encodeAbsolute(encoder, false, encoderOffsetRotations);
+        applyPivotConfig(motor, encoder,
+            motorInverted ? InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive,
+            supplyLimit, statorLimit, sensorToMechanismRatio, rotorToSensorRatio,
+            reverseLimitPos, forwardLimitPos, encoderOffsetRotations);
+    }
+
+    /**
+     * Same as above but with the motor output direction spelled out
+     * explicitly ({@link InvertedValue}) instead of a boolean.
+     */
+    public static void applyPivotConfig(
+        TalonFX motor,
+        CANcoder encoder,
+        InvertedValue inversion,
+        double supplyLimit,
+        double statorLimit,
+        double sensorToMechanismRatio,
+        double rotorToSensorRatio,
+        double reverseLimitPos,
+        double forwardLimitPos,
+        double encoderOffsetRotations
+    ) {
+        applyPivotConfig(motor, encoder, inversion, supplyLimit, statorLimit,
+            sensorToMechanismRatio, rotorToSensorRatio, reverseLimitPos, forwardLimitPos,
+            encoderOffsetRotations, true, false);
+    }
+
+    /**
+     * Full version: pass {@code false} for {@code enableSoftLimits} to jog
+     * freely while calibrating (limits gate open-loop percent too).
+     * Re-enable once targets are measured.
+     *
+     * @param sensorToMechanismRatio sensor turns per mechanism turn
+     *     (1.0 when the CANcoder rides the output shaft)
+     * @param rotorToSensorRatio motor turns per sensor turn
+     *     (1.0 when the CANcoder rides the motor shaft)
+     * @param sensorInverted true = sensor counts clockwise-positive
+     */
+    public static void applyPivotConfig(
+        TalonFX motor,
+        CANcoder encoder,
+        InvertedValue inversion,
+        double supplyLimit,
+        double statorLimit,
+        double sensorToMechanismRatio,
+        double rotorToSensorRatio,
+        double reverseLimitPos,
+        double forwardLimitPos,
+        double encoderOffsetRotations,
+        boolean enableSoftLimits,
+        boolean sensorInverted
+    ) {
+        encodeAbsolute(encoder, sensorInverted, encoderOffsetRotations);
 
         TalonFXConfiguration cfg = new TalonFXConfiguration()
             .withSlot0(new Slot0Configs()
                 .withKP(12.0).withKI(0).withKD(0).withKS(0.05)
                 .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign))
             .withMotorOutput(new MotorOutputConfigs()
-                .withInverted(motorInverted
-                    ? InvertedValue.Clockwise_Positive
-                    : InvertedValue.CounterClockwise_Positive)
+                .withInverted(inversion)
 .withNeutralMode(NeutralModeValue.Brake))
             .withCurrentLimits(
                 new com.ctre.phoenix6.configs.CurrentLimitsConfigs()
@@ -94,13 +145,14 @@ public final class MotorConfigs {
 .withFeedback(new FeedbackConfigs()
                 .withFusedCANcoder(encoder)
                 .withFeedbackSensorSource(FeedbackSensorSourceValue.FusedCANcoder)
-                .withSensorToMechanismRatio(totalReduction))
+                .withSensorToMechanismRatio(sensorToMechanismRatio)
+                .withRotorToSensorRatio(rotorToSensorRatio))
             .withMotionMagic(new MotionMagicConfigs()
                 .withMotionMagicCruiseVelocity(1.0)
                 .withMotionMagicAcceleration(4.0))
             .withSoftwareLimitSwitch(new SoftwareLimitSwitchConfigs()
-                .withForwardSoftLimitEnable(true)
-                .withReverseSoftLimitEnable(true)
+                .withForwardSoftLimitEnable(enableSoftLimits)
+                .withReverseSoftLimitEnable(enableSoftLimits)
                 .withForwardSoftLimitThreshold(forwardLimitPos)
                 .withReverseSoftLimitThreshold(reverseLimitPos));
         motor.getConfigurator().apply(cfg);

@@ -5,82 +5,102 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>2026 Phoenix — Controller Map</title>
 <style>
-  :root { --bg: #111418; --panel: #1a1f26; --ink: #e8ecf1; --dim: #9aa4b2;
-          --accent: #f5b301; --test: #35c26e; --bound: #2f81f7; }
+  :root { --bg: #0c0f14; --panel: #161b24; --panel2: #1d2431; --ink: #eef2f7; --dim: #98a2b3;
+          --accent: #f5b301; --test: #35c26e; --line: #2a3342; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
-         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  header { padding: 16px 24px 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-  header h1 { font-size: 20px; margin: 0; }
-  header h1 span { color: var(--dim); font-weight: 400; font-size: 14px; }
-  .modes { display: flex; gap: 8px; }
-  .modes button { background: var(--panel); color: var(--ink); border: 1px solid #333c47;
-    border-radius: 8px; padding: 8px 18px; cursor: pointer; font-size: 14px; }
-  .modes button.on[data-mode="Match"] { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 700; }
-  .modes button.on[data-mode="Test"] { background: var(--test); color: #111; border-color: var(--test); font-weight: 700; }
-  main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px 24px 32px; }
+  body { margin: 0; background: radial-gradient(1200px 400px at 50% -80px, #1a2333 0%, var(--bg) 60%) fixed, var(--bg);
+         color: var(--ink); font: 14px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  header { padding: 22px 28px 14px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+           border-bottom: 1px solid var(--line); background: rgba(12,15,20,.6); backdrop-filter: blur(6px);
+           position: sticky; top: 0; z-index: 5; }
+  .logo { width: 42px; height: 42px; border-radius: 12px; flex: none;
+          background: conic-gradient(from 200deg, #f5b301, #ff7847, #7a4fd0, #2f81f7, #35c26e, #f5b301);
+          display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: #0c0f14; }
+  header h1 { font-size: 21px; margin: 0; letter-spacing: .2px; }
+  header h1 span { color: var(--dim); font-weight: 400; font-size: 13px; display: block; }
+  .modes { display: flex; gap: 0; margin-left: auto; background: var(--panel); border: 1px solid var(--line);
+           border-radius: 12px; padding: 4px; }
+  .modes button { background: transparent; color: var(--dim); border: 0; border-radius: 9px;
+                  padding: 8px 26px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all .15s; }
+  .modes button.on[data-mode="Match"] { background: var(--accent); color: #111; box-shadow: 0 2px 12px rgba(245,179,1,.4); }
+  .modes button.on[data-mode="Test"] { background: var(--test); color: #06130c; box-shadow: 0 2px 12px rgba(53,194,110,.4); }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 20px 28px 32px; max-width: 1600px; margin: 0 auto; }
   @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
-  .pad { background: var(--panel); border-radius: 12px; padding: 16px; }
-  .pad h2 { margin: 0 0 4px; font-size: 16px; }
-  .pad h2 span { color: var(--dim); font-weight: 400; font-size: 13px; }
-  svg.controller { width: 100%; height: auto; display: block; }
-  .legend { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
-  .legend li { display: flex; gap: 10px; align-items: baseline; background: #141920;
-    border-radius: 8px; padding: 7px 10px; }
-  .badge { flex: none; min-width: 86px; text-align: center; font-size: 12px; font-weight: 700;
-    background: var(--bound); color: #fff; border-radius: 6px; padding: 2px 8px; }
-  .badge.hold { background: #7a4fd0; }
-  .badge.press { background: #2f81f7; }
-  .badge.toggle { background: #c26e35; }
-  .badge.stick { background: #35c26e; }
-  .legend .kind { color: var(--dim); font-size: 12px; margin-left: auto; flex: none; }
-  footer { padding: 0 24px 24px; color: var(--dim); font-size: 12px; }
+  .pad { background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--line);
+         border-radius: 16px; padding: 18px 18px 14px; box-shadow: 0 8px 28px rgba(0,0,0,.35); }
+  .pad h2 { margin: 0 0 2px; font-size: 17px; display: flex; align-items: center; gap: 10px; }
+  .pad h2 .port { font-size: 11px; font-weight: 700; color: var(--dim); border: 1px solid var(--line);
+                  border-radius: 20px; padding: 1px 10px; }
+  svg.controller { width: 100%; height: auto; display: block; margin-top: 6px; }
+  .legend { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 6px; }
+  .legend li { display: flex; gap: 10px; align-items: baseline; background: rgba(255,255,255,.025);
+               border: 1px solid transparent; border-radius: 10px; padding: 7px 12px; transition: border-color .15s; }
+  .legend li:hover { border-color: var(--line); background: rgba(255,255,255,.05); }
+  .badge { flex: none; min-width: 104px; text-align: center; font-size: 12px; font-weight: 700;
+           color: #fff; border-radius: 7px; padding: 3px 10px; box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
+  .badge.hold { background: linear-gradient(180deg, #8b5cf6, #6d3fd4); }
+  .badge.press { background: linear-gradient(180deg, #3f97f7, #2063c8); }
+  .badge.toggle { background: linear-gradient(180deg, #e08a3c, #b25f1d); }
+  .badge.stick { background: linear-gradient(180deg, #43d17e, #239a54); }
+  .legend .kind { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .6px;
+                  margin-left: auto; flex: none; }
+  footer { padding: 0 28px 28px; color: var(--dim); font-size: 12px; max-width: 1600px; margin: 0 auto; }
+  footer .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin: 0 4px 0 12px; vertical-align: baseline; }
+  @media print {
+    header { position: static; } body { background: #fff; color: #111; }
+    .pad { box-shadow: none; border-color: #ccc; background: #fff; } .modes, footer { display: none; }
+    main { max-width: none; } .legend li { background: #f2f2f2; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>2026 Phoenix <span>controller map — generated from RobotContainer bindings</span></h1>
+  <div class="logo">P</div>
+  <h1>2026 Phoenix — Controller Map<span>synced with RobotContainer bindings · Match / Test toggle</span></h1>
   <div class="modes">
     <button data-mode="Match" class="on">Match</button>
     <button data-mode="Test">Test</button>
   </div>
 </header>
 <main>
-  <section class="pad"><h2>Driver <span>port 1</span></h2><div id="driverPad"></div><ul class="legend" id="driverLegend"></ul></section>
-  <section class="pad"><h2>Operator <span>port 0</span></h2><div id="operatorPad"></div><ul class="legend" id="operatorLegend"></ul></section>
+  <section class="pad"><h2>Driver <span class="port">PORT 1</span></h2><div id="driverPad"></div><ul class="legend" id="driverLegend"></ul></section>
+  <section class="pad"><h2>Operator <span class="port">PORT 0</span></h2><div id="operatorPad"></div><ul class="legend" id="operatorLegend"></ul></section>
 </main>
-<footer>Badge colors: blue = press · purple = hold · orange = toggle · green = stick axis. Unbound inputs are dimmed on the diagram.</footer>
+<footer><span class="swatch" style="background:#3f97f7"></span>press<span class="swatch" style="background:#8b5cf6"></span>hold<span class="swatch" style="background:#e08a3c"></span>toggle<span class="swatch" style="background:#43d17e"></span>stick axis · dim inputs are unbound · print this page for a pit poster</footer>
 
 <script>
 // ---------------------------------------------------------------------------
-// Binding data. kind: press | hold | toggle | stick. pos: badge anchor on the
-// 800x460 SVG canvas. Keep in sync with RobotContainer.configureBindings().
+// Binding data. kind: press | hold | toggle | stick.
+// Keep in sync with RobotContainer.configureBindings().
 // ---------------------------------------------------------------------------
-const SVG_W = 800, SVG_H = 460;
+const SVG_W = 800, SVG_H = 470;
 const INPUTS = {
-  lb:       { x: 200, y: 96,  label: "LB" },
-  rb:       { x: 600, y: 96,  label: "RB" },
-  lt:       { x: 268, y: 52,  label: "LT" },
-  rt:       { x: 532, y: 52,  label: "RT" },
-  back:     { x: 330, y: 190, label: "Ξ" },
-  start:    { x: 470, y: 190, label: "☰" },
-  ljoy:     { x: 268, y: 268, label: "LS" },
-  rjoy:     { x: 470, y: 348, label: "RS" },
-  pov:      { x: 330, y: 340, label: "POV" },
-  a:        { x: 560, y: 330, label: "A" },
-  b:        { x: 612, y: 278, label: "B" },
-  x:        { x: 508, y: 278, label: "X" },
-  y:        { x: 560, y: 226, label: "Y" },
+  lb:       { x: 205, y: 100, label: "LB" },
+  rb:       { x: 595, y: 100, label: "RB" },
+  lt:       { x: 272, y: 52,  label: "LT" },
+  rt:       { x: 528, y: 52,  label: "RT" },
+  back:     { x: 332, y: 196, label: "⊟" },
+  start:    { x: 468, y: 196, label: "☰" },
+  ljoy:     { x: 272, y: 272, label: "LS" },
+  rjoy:     { x: 468, y: 352, label: "RS" },
+  pov:      { x: 332, y: 344, label: "POV" },
+  a:        { x: 560, y: 336, label: "A" },
+  b:        { x: 614, y: 282, label: "B" },
+  x:        { x: 506, y: 282, label: "X" },
+  y:        { x: 560, y: 228, label: "Y" },
 };
 const BINDINGS = {
   driver: {
     Match: [
       { in: "ljoy", kind: "stick",  name: "Drive",        desc: "field-centric translate" },
-      { in: "rjoy", kind: "stick",  name: "Rotate",       desc: "field-centric rotation" },
+      { in: "rjoy", kind: "stick",  name: "Rotate",       desc: "field-centric rotation (dead in aim)" },
+      { in: "rt",   kind: "hold",   name: "SHOOT",        desc: "drums −3300; spindle/agitator idle until drums+hood ready, then full + intake 4s dip" },
+      { in: "lt",   kind: "toggle", name: "Aim toggle",   desc: "back locks on hub; sticks translate (shoot on move); still 500ms stops; tap again releases + stows hood" },
       { in: "rb",   kind: "hold",   name: "Slow 0.3x",    desc: "hold for slow mode" },
       { in: "lb",   kind: "press",  name: "Seed heading", desc: "re-seed field-centric" },
+      { in: "b",    kind: "toggle", name: "Deploy/Stow", desc: "alternates deploy+roll / stow each press" },
       { in: "a",    kind: "hold",   name: "Brake",        desc: "X-pattern brake" },
-      { in: "b",    kind: "hold",   name: "Point wheels", desc: "point at left-stick dir" },
+      { in: "x",    kind: "hold",   name: "Reverse",      desc: "reverse intake rollers (clear jam)" },
     ],
     Test: [
       { in: "ljoy", kind: "stick",  name: "Drive",        desc: "field-centric translate" },
@@ -93,30 +113,32 @@ const BINDINGS = {
   },
   operator: {
     Match: [
-      { in: "rt", kind: "hold",  name: "SHOOT",        desc: "drums −6000 + spindle −40 + feed" },
-      { in: "lt", kind: "hold",  name: "Intake",       desc: "rollers in 0.4" },
-      { in: "b",  kind: "press", name: "Deploy/Stow",  desc: "alternates each press" },
-      { in: "rb", kind: "toggle",  name: "Aim + lock",   desc: "X-brake; driver sticks unlock to shoot on move, release re-locks" },
-      { in: "x",  kind: "hold",  name: "Brake",        desc: "X-pattern brake" },
+      { in: "rt", kind: "hold",   name: "SHOOT",       desc: "same as driver RT (shared sequence)" },
+      { in: "lt", kind: "toggle", name: "Aim toggle",  desc: "flips the shared aim latch" },
+      { in: "rb", kind: "hold",   name: "Slow 0.3x",   desc: "hold for slow mode" },
+      { in: "lb", kind: "press",  name: "Seed heading", desc: "re-seed field-centric" },
+      { in: "b",  kind: "toggle", name: "Deploy/Stow", desc: "alternates deploy+roll / stow each press" },
+      { in: "a",  kind: "hold",   name: "Brake",       desc: "X-pattern brake" },
+      { in: "x",  kind: "hold",   name: "Reverse",     desc: "reverse intake rollers (clear jam)" },
     ],
     Test: [
-      { in: "pov", kind: "press",  name: "POV U/D",     desc: "shooter high −6000 / low −2000 + spindle" },
+      { in: "pov", kind: "press",  name: "POV U/D",     desc: "shooter high −3300 / low −2000 + spindle" },
       { in: "pov", kind: "toggle", name: "POV L",       desc: "spindle standalone toggle" },
       { in: "pov", kind: "press",  name: "POV R",       desc: "stop all shooter" },
-      { in: "ljoy", kind: "stick", name: "Hood",        desc: "manual ±30%" },
-      { in: "rjoy", kind: "stick", name: "Pivot",       desc: "manual ±30%" },
+      { in: "ljoy", kind: "stick", name: "Hood",        desc: "percent jog (motor config owns dir)" },
+      { in: "rjoy", kind: "stick", name: "Pivot",       desc: "percent jog" },
       { in: "x",   kind: "press",  name: "Deploy",      desc: "intake deploy" },
       { in: "y",   kind: "press",  name: "Stow",        desc: "intake stow" },
-      { in: "b",   kind: "hold",   name: "Hood up",     desc: "to max −1°" },
-      { in: "a",   kind: "hold",   name: "Hood down",   desc: "to min −21° (stowed)" },
-      { in: "rb",  kind: "hold",   name: "Intake",      desc: "rollers in 0.4" },
+      { in: "b",   kind: "hold",   name: "Hood deploy", desc: "to 27.5 (boot-relative)" },
+      { in: "a",   kind: "hold",   name: "Hood stow",   desc: "to 0 (boot-relative)" },
+      { in: "rb",  kind: "hold",   name: "Intake",      desc: "rollers 20 RPS flat" },
       { in: "rt",  kind: "hold",   name: "Agitator",    desc: "hopper forward" },
     ],
   },
 };
 
 // ---------------------------------------------------------------------------
-// SVG controller renderer (pure inline SVG built with JS — no dependencies).
+// Xbox-style controller renderer (inline SVG, no dependencies).
 // ---------------------------------------------------------------------------
 const NS = "http://www.w3.org/2000/svg";
 function el(tag, attrs, parent) {
@@ -125,40 +147,162 @@ function el(tag, attrs, parent) {
   parent.appendChild(e);
   return e;
 }
-function renderPad(mount, boundInputs) {
+const KINDCOLOR = { press: "#3f97f7", hold: "#8b5cf6", toggle: "#e08a3c", stick: "#43d17e" };
+const FACECOLOR = { a: "#22a355", b: "#d43a2f", x: "#2f6fd0", y: "#e0a100" };
+const DIM = "#2a313b", DIMEDGE = "#454f5c";
+
+function renderPad(mount, list) {
+  const bound = new Set(list.map((b) => b.in));
+  const firstName = {};
+  for (const b of list) if (!(b.in in firstName)) firstName[b.in] = b.name;
+  const on = (id) => bound.has(id);
+  const kindOf = (id) => (list.find((b) => b.in === id) || {}).kind;
+
   const svg = el("svg", { viewBox: `0 0 ${SVG_W} ${SVG_H}`, class: "controller" }, mount);
-  const on = (id) => boundInputs.has(id);
-  const btn = (id, shape) => {
-    const p = INPUTS[id], g = el("g", {}, svg);
-    const fill = on(id) ? "#2f81f7" : "#2a313b", stroke = on(id) ? "#9ec5ff" : "#454f5c";
-    if (shape === "circle") el("circle", { cx: p.x, cy: p.y, r: 26, fill, stroke, "stroke-width": 2 }, g);
-    if (shape === "rect") el("rect", { x: p.x - 52, y: p.y - 18, width: 104, height: 36, rx: 10, fill, stroke, "stroke-width": 2 }, g);
-    if (shape === "stick") { el("circle", { cx: p.x, cy: p.y, r: 44, fill: "#1c222b", stroke: "#454f5c", "stroke-width": 2 }, g);
-      el("circle", { cx: p.x, cy: p.y, r: 26, fill, stroke, "stroke-width": 2 }, g); }
-    if (shape === "pov") { el("rect", { x: p.x - 30, y: p.y - 30, width: 60, height: 60, rx: 8, fill: "#1c222b", stroke: "#454f5c", "stroke-width": 2 }, g);
-      el("circle", { cx: p.x, cy: p.y, r: 16, fill, stroke, "stroke-width": 2 }, g); }
-    const t = el("text", { x: p.x, y: p.y + 6, "text-anchor": "middle", fill: on(id) ? "#fff" : "#79838f",
-      "font-size": shape === "rect" ? 20 : 22, "font-weight": "bold" }, g);
-    t.textContent = p.label;
+  const defs = el("defs", {}, svg);
+  const filt = el("filter", { id: "glow", x: "-60%", y: "-60%", width: "220%", height: "220%" }, defs);
+  el("feGaussianBlur", { stdDeviation: 7, result: "b" }, filt);
+  const merge = el("feMerge", {}, filt);
+  el("feMergeNode", { in: "b" }, merge); el("feMergeNode", { in: "SourceGraphic" }, merge);
+  const grad = (id, c1, c2) => {
+    const g = el("linearGradient", { id, x1: "0", y1: "0", x2: "0", y2: "1" }, defs);
+    el("stop", { offset: "0%", "stop-color": c1 }, g);
+    el("stop", { offset: "100%", "stop-color": c2 }, g);
   };
-  // body
-  el("path", { d: "M150 130 Q150 90 200 90 L600 90 Q650 90 650 130 L700 330 Q706 380 660 380 Q620 380 600 330 L560 230 Q400 200 240 230 L200 330 Q180 380 140 380 Q94 380 100 330 Z",
-    fill: "#222932", stroke: "#454f5c", "stroke-width": 2 }, svg);
-  btn("lt", "rect"); btn("rt", "rect"); btn("lb", "rect"); btn("rb", "rect");
-  btn("back", "circle"); btn("start", "circle");
-  btn("ljoy", "stick"); btn("rjoy", "stick"); btn("pov", "pov");
-  btn("a", "circle"); btn("b", "circle"); btn("x", "circle"); btn("y", "circle");
-  el("circle", { cx: 400, cy: 190, r: 20, fill: "#1c222b", stroke: "#454f5c", "stroke-width": 2 }, svg);
+  grad("bodygrad", "#2e3949", "#1a2130");
+  grad("gripgrad", "#232c3d", "#141922");
+  grad("triggrad", "#3a4657", "#222a38");
+
+  // Main shell: faceplate + left/right grips
+  el("path", { d: "M150 132 Q150 92 200 92 L600 92 Q650 92 650 132 L702 332 Q708 384 660 384 Q620 384 600 332 L560 232 Q400 202 240 232 L200 332 Q180 384 140 384 Q92 384 98 332 Z",
+    fill: "url(#bodygrad)", stroke: "#3a4657", "stroke-width": 2 }, svg);
+  el("path", { d: "M118 300 Q112 348 140 372 Q162 386 176 360 L196 300 Z", fill: "url(#gripgrad)", stroke: "#333f52", "stroke-width": 1.5 }, svg);
+  el("path", { d: "M682 300 Q688 348 660 372 Q638 386 624 360 L604 300 Z", fill: "url(#gripgrad)", stroke: "#333f52", "stroke-width": 1.5 }, svg);
+  // Faceplate inset panel
+  el("ellipse", { cx: 400, cy: 250, rx: 205, ry: 130, fill: "none", stroke: "#333f52", "stroke-width": 1.5, opacity: 0.7 }, svg);
+
+  const caption = (p, dy, id) => {
+    if (on(id) && firstName[id]) {
+      const c = el("text", { x: p.x, y: p.y + dy, "text-anchor": "middle", fill: "#cfd8e3",
+        "font-size": 15, "font-weight": "600" }, svg);
+      c.textContent = firstName[id];
+    }
+  };
+  const glowIf = (id) => on(id) ? { filter: "url(#glow)" } : {};
+
+  // Triggers (top) with depth shading
+  const trigger = (id) => {
+    const p = INPUTS[id];
+    const g = el("g", {}, svg);
+    el("rect", Object.assign({ x: p.x - 56, y: p.y - 20, width: 112, height: 30, rx: 9,
+      fill: on(id) ? KINDCOLOR[kindOf(id)] : "url(#triggrad)", stroke: on(id) ? KINDCOLOR[kindOf(id)] : "#4a5668",
+      "stroke-width": 2.5 }, glowIf(id)), g);
+    el("rect", { x: p.x - 56, y: p.y - 20, width: 112, height: 12, rx: 6, fill: "#ffffff", opacity: 0.12 }, g);
+    const t = el("text", { x: p.x, y: p.y + 3, "text-anchor": "middle", fill: on(id) ? "#fff" : "#79838f",
+      "font-size": 19, "font-weight": "bold" }, g);
+    t.textContent = p.label;
+    caption(p, -32, id);
+  };
+  // Bumpers (below triggers)
+  const bumper = (id) => {
+    const p = INPUTS[id];
+    const g = el("g", {}, svg);
+    el("rect", Object.assign({ x: p.x - 56, y: p.y - 17, width: 112, height: 34, rx: 12,
+      fill: on(id) ? KINDCOLOR[kindOf(id)] : "#262e3d", stroke: on(id) ? KINDCOLOR[kindOf(id)] : "#4a5668",
+      "stroke-width": 2.5 }, glowIf(id)), g);
+    el("rect", { x: p.x - 56, y: p.y - 17, width: 112, height: 12, rx: 6, fill: "#ffffff", opacity: 0.1 }, g);
+    const t = el("text", { x: p.x, y: p.y + 6, "text-anchor": "middle", fill: on(id) ? "#fff" : "#79838f",
+      "font-size": 19, "font-weight": "bold" }, g);
+    t.textContent = p.label;
+    caption(p, 38, id);
+  };
+  trigger("lt"); trigger("rt"); bumper("lb"); bumper("rb");
+
+  // Thumbsticks: dish + textured ring + domed cap
+  const stick = (id) => {
+    const p = INPUTS[id];
+    const g = el("g", {}, svg);
+    el("circle", { cx: p.x, cy: p.y, r: 47, fill: "#10141b", stroke: "#333f52", "stroke-width": 2 }, g);
+    el("circle", Object.assign({ cx: p.x, cy: p.y, r: 33, fill: "#1c232f",
+      stroke: on(id) ? KINDCOLOR[kindOf(id)] : "#4a5668", "stroke-width": on(id) ? 3 : 2 }, glowIf(id)), g);
+    for (let a = 0; a < 12; a++) {
+      const ang = a * Math.PI / 6;
+      el("line", { x1: p.x + 22 * Math.cos(ang), y1: p.y + 22 * Math.sin(ang),
+                   x2: p.x + 29 * Math.cos(ang), y2: p.y + 29 * Math.sin(ang),
+                   stroke: "#3a4657", "stroke-width": 2 }, g);
+    }
+    el("circle", { cx: p.x - 6, cy: p.y - 7, r: 10, fill: "#ffffff", opacity: 0.08 }, g);
+    const t = el("text", { x: p.x, y: p.y + 6, "text-anchor": "middle", fill: on(id) ? "#fff" : "#79838f",
+      "font-size": 17, "font-weight": "bold" }, g);
+    t.textContent = p.label;
+    caption(p, 68, id);
+  };
+  stick("ljoy"); stick("rjoy");
+
+  // D-pad: plus shape with center pivot
+  const povDraw = (id) => {
+    const p = INPUTS[id];
+    const g = el("g", {}, svg);
+    el("circle", { cx: p.x, cy: p.y, r: 40, fill: "#10141b", stroke: "#333f52", "stroke-width": 2 }, g);
+    const fill = on(id) ? KINDCOLOR[kindOf(id)] : "#262e3d";
+    const edge = on(id) ? KINDCOLOR[kindOf(id)] : "#4a5668";
+    el("rect", Object.assign({ x: p.x - 13, y: p.y - 33, width: 26, height: 66, rx: 6, fill, stroke: edge, "stroke-width": 2 }, glowIf(id)), g);
+    el("rect", Object.assign({ x: p.x - 33, y: p.y - 13, width: 66, height: 26, rx: 6, fill, stroke: edge, "stroke-width": 2 }, glowIf(id)), g);
+    el("circle", { cx: p.x, cy: p.y, r: 9, fill: "#141922", stroke: edge, "stroke-width": 1.5 }, g);
+    caption(p, 58, id);
+  };
+  povDraw("pov");
+
+  // ABXY in official colors when bound
+  const face = (id) => {
+    const p = INPUTS[id];
+    const g = el("g", {}, svg);
+    const c = on(id) ? FACECOLOR[id] : DIM;
+    el("circle", Object.assign({ cx: p.x, cy: p.y, r: 27, fill: c,
+      stroke: on(id) ? c : DIMEDGE, "stroke-width": 2.5 }, glowIf(id)), g);
+    el("ellipse", { cx: p.x - 7, cy: p.y - 9, rx: 10, ry: 6, fill: "#ffffff", opacity: on(id) ? 0.28 : 0.06,
+      transform: `rotate(-25 ${p.x - 7} ${p.y - 9})` }, g);
+    const t = el("text", { x: p.x, y: p.y + 7, "text-anchor": "middle", fill: on(id) ? "#fff" : "#79838f",
+      "font-size": 22, "font-weight": "bold" }, g);
+    t.textContent = p.label;
+    caption(p, 46, id);
+  };
+  face("a"); face("b"); face("x"); face("y");
+
+  // Xbox guide button: luminous ring + X glyph
+  const xb = el("g", {}, svg);
+  el("circle", { cx: 400, cy: 196, r: 21, fill: "#10141b", stroke: "#3a4657", "stroke-width": 2 }, xb);
+  el("circle", { cx: 400, cy: 196, r: 14, fill: "none", stroke: "#9fb4cc", "stroke-width": 2.5, opacity: 0.85,
+    filter: "url(#glow)" }, xb);
+  el("path", { d: "M394 190 L406 202 M406 190 L394 202", stroke: "#9fb4cc", "stroke-width": 2.5,
+    "stroke-linecap": "round" }, xb);
+
+  // View / Menu pills
+  const pill = (id) => {
+    const p = INPUTS[id];
+    const g = el("g", {}, svg);
+    el("circle", Object.assign({ cx: p.x, cy: p.y, r: 15, fill: on(id) ? KINDCOLOR[kindOf(id)] : "#262e3d",
+      stroke: on(id) ? KINDCOLOR[kindOf(id)] : "#4a5668", "stroke-width": 2 }, glowIf(id)), g);
+    const t = el("text", { x: p.x, y: p.y + 6, "text-anchor": "middle", fill: on(id) ? "#fff" : "#79838f",
+      "font-size": 15, "font-weight": "bold" }, g);
+    t.textContent = p.label;
+    caption(p, 34, id);
+  };
+  pill("back"); pill("start");
 }
 function render(mode) {
   for (const pad of ["driver", "operator"]) {
     const list = BINDINGS[pad][mode];
-    const bound = new Set(list.map((b) => b.in));
     const mount = document.getElementById(pad + "Pad");
     mount.innerHTML = "";
-    renderPad(mount, bound);
+    renderPad(mount, list);
     const ul = document.getElementById(pad + "Legend");
     ul.innerHTML = "";
+    if (list.length === 0) {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="badge press">—</span><span>No bindings in this mode</span><span class="kind">idle</span>`;
+      ul.appendChild(li);
+    }
     for (const b of list) {
       const li = document.createElement("li");
       li.innerHTML = `<span class="badge ${b.kind}">${INPUTS[b.in].label} · ${b.name}</span><span>${b.desc}</span><span class="kind">${b.kind}</span>`;

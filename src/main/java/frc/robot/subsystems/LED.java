@@ -24,7 +24,7 @@ public class LED extends SubsystemBase {
     private static final RGBWColor kGreen = new RGBWColor(0, 255, 0);
 
     public LED() {
-        m_candle = new CANdle(Constants.old.LED.kCANdle, Constants.kCANivoreBus);
+        m_candle = new CANdle(Constants.ID.kLED, Constants.kCANBus);
         m_ledCount = Constants.LED.kNyLEDCount;
 
         CANdleConfiguration cfg = new CANdleConfiguration();
@@ -75,6 +75,6 @@ public class LED extends SubsystemBase {
 
     @Override
     public String toString() {
-        return "LED(" + Constants.old.LED.kCANdle + ")";
+        return "LED(" + Constants.ID.kLED + ")";
     }
 }

@@ -70,6 +70,8 @@ public class ShootOnTheMove extends Command {
         SmartDashboard.putNumber("Aim/Distance", distance);
         SmartDashboard.putNumber("Aim/HoodDeg", hoodDeg);
         SmartDashboard.putNumber("Aim/DrumRPM", rpm);
+        SmartDashboard.putNumber("Aim/HubAngleDeg",
+            hub.minus(muzzle).getAngle().minus(pose.getRotation()).getDegrees());
 
         m_hood.setHoodDegrees(hoodDeg);
         m_shooter.setDrumRpm(rpm);
@@ -78,6 +80,6 @@ public class ShootOnTheMove extends Command {
 
     @Override
     public void end(boolean interrupted) {
-        m_shooter.stopAll();
+        m_shooter.killOutputs();
     }
 }

@@ -16,5 +16,12 @@ public final class FieldConstants {
     public static final Translation2d kHubRed =
         new Translation2d(kFieldLength - kHubDistFromWall, kHubY);
 
+    // Passing targets: center of each alliance zone. A pass aims the muzzle
+    // into the own zone (blue robot -> kPassTargetBlue).
+    public static final Translation2d kPassTargetBlue =
+        new Translation2d(kHubDistFromWall / 2.0, kHubY);
+    public static final Translation2d kPassTargetRed =
+        new Translation2d(kFieldLength - kHubDistFromWall / 2.0, kHubY);
+
     private FieldConstants() {}
 }

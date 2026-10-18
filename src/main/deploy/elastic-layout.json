@@ -12,174 +12,121 @@
             "properties": {
               "topic": "/SmartDashboard/Field",
               "period": 0.1,
-              "field_game": "Rebuilt",
-              "robot_width": 0.84,
-              "robot_length": 0.914,
-              "show_trajectories": true,
-              "show_other_objects": true
+              "field_game": "Rebuilt"
             },
             "x": 0.0,
             "y": 0.0,
-            "width": 1536.0,
-            "height": 1024.0
+            "width": 768.0,
+            "height": 768.0
           },
           {
-            "title": "Slow Mode",
-            "type": "Boolean Box",
+            "title": "Limelight",
+            "type": "Camera Stream",
             "properties": {
-              "topic": "/SmartDashboard/Slow Mode",
-              "period": 0.1
+              "topic": "/limelight",
+              "period": 0.033
             },
-            "x": 1600.0,
+            "x": 768.0,
             "y": 0.0,
-            "width": 256.0,
-            "height": 128.0
+            "width": 512.0,
+            "height": 384.0
           },
           {
-            "title": "Control Mode",
-            "type": "Dropdown Chooser",
+            "title": "Match Time",
+            "type": "Match Time",
             "properties": {
-              "topic": "/SmartDashboard/Control Mode",
-              "period": 0.1
-            },
-            "x": 1600.0,
-            "y": 256.0,
-            "width": 384.0,
-            "height": 128.0
-          }
-        ],
-        "layouts": []
-      }
-    },
-    {
-      "name": "Swerve",
-      "grid_layout": {
-        "containers": [
-          {
-            "title": "Odometry Freq",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/DriveState/OdometryFrequency",
+              "topic": "/SmartDashboard/Match/TimeLeft",
+              "time_display_mode": "Minutes and Seconds",
+              "red_start_time": 20,
+              "yellow_start_time": 30,
               "period": 0.2
             },
-            "x": 0.0,
-            "y": 0.0,
+            "x": 768.0,
+            "y": 384.0,
             "width": 256.0,
             "height": 128.0
           },
           {
-            "title": "Odometry Freq Graph",
-            "type": "Graph",
-            "properties": {
-              "topic": "/DriveState/OdometryFrequency",
-              "period": 0.1
-            },
-            "x": 0.0,
-            "y": 256.0,
-            "width": 512.0,
-            "height": 256.0
-          }
-        ],
-        "layouts": []
-      }
-    },
-    {
-      "name": "Mechanisms",
-      "grid_layout": {
-        "containers": [
-          {
-            "title": "Intake Pivot Rotations",
+            "title": "Match Phase",
             "type": "Text Display",
             "properties": {
-              "topic": "/SmartDashboard/Intake/PivotRot",
-              "period": 0.1
+              "topic": "/SmartDashboard/Match/Phase",
+              "period": 0.2
             },
-            "x": 0.0,
-            "y": 0.0,
+            "x": 1024.0,
+            "y": 384.0,
             "width": 256.0,
             "height": 128.0
           },
           {
-            "title": "Intake Roller Current",
-            "type": "Text Display",
+            "title": "Aligned to Hub",
+            "type": "Boolean Box",
             "properties": {
-              "topic": "/SmartDashboard/Intake/RollCur",
+              "topic": "/SmartDashboard/Aim/AlignedToHub",
               "period": 0.1
             },
-            "x": 320.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Hopper Agitator RPS",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Hopper/AgitatorRPS",
-              "period": 0.1
-            },
-            "x": 0.0,
-            "y": 256.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Shooter Drum RPM",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/DrumRPM",
-              "period": 0.1
-            },
-            "x": 320.0,
-            "y": 256.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Shooter Spindle RPS",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/SpindleRPS",
-              "period": 0.1
-            },
-            "x": 640.0,
-            "y": 256.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Hood Degrees",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Hood/Degrees",
-              "period": 0.1
-            },
-            "x": 0.0,
+            "x": 768.0,
             "y": 512.0,
             "width": 256.0,
             "height": 128.0
           },
           {
-            "title": "Goal Hood Degrees",
-            "type": "Text Display",
+            "title": "Voltage",
+            "type": "Voltage View",
             "properties": {
-              "topic": "/SmartDashboard/Aim/HoodDeg",
-              "period": 0.1
+              "topic": "/SmartDashboard/PDH/Voltage",
+              "period": 0.2
             },
-            "x": 320.0,
+            "x": 1024.0,
             "y": 512.0,
             "width": 256.0,
             "height": 128.0
           },
           {
-            "title": "Goal Shooter RPM",
+            "title": "Speed m/s",
             "type": "Text Display",
             "properties": {
-              "topic": "/SmartDashboard/Aim/DrumRPM",
+              "topic": "/SmartDashboard/DriveState/SpeedMS",
               "period": 0.1
             },
-            "x": 640.0,
-            "y": 512.0,
+            "x": 768.0,
+            "y": 640.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Test Mode",
+            "type": "Toggle Switch",
+            "properties": {
+              "topic": "/SmartDashboard/Test Mode",
+              "period": 0.1
+            },
+            "x": 1024.0,
+            "y": 640.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Reset Hood",
+            "type": "Command",
+            "properties": {
+              "topic": "/SmartDashboard/Reset Hood",
+              "period": 0.1
+            },
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Reset Intake",
+            "type": "Command",
+            "properties": {
+              "topic": "/SmartDashboard/Reset Intake",
+              "period": 0.1
+            },
+            "x": 1280.0,
+            "y": 128.0,
             "width": 256.0,
             "height": 128.0
           }
@@ -192,114 +139,6 @@
       "grid_layout": {
         "containers": [
           {
-            "title": "Drum RPM",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/DrumRPM",
-              "period": 0.1
-            },
-            "x": 0.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Drum Target RPM",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/DrumTargetRPM",
-              "period": 0.1
-            },
-            "x": 320.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Drum Error RPM",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/DrumErrorRPM",
-              "period": 0.1
-            },
-            "x": 640.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Drum At Speed",
-            "type": "Boolean Box",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/DrumAtSpeed",
-              "period": 0.1
-            },
-            "x": 960.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Drum Temp C",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/DrumTempC",
-              "period": 0.2
-            },
-            "x": 1280.0,
-            "y": 0.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Drum Left RPM",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/DrumLeftRPM",
-              "period": 0.1
-            },
-            "x": 0.0,
-            "y": 256.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Drum Right RPM",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/DrumRightRPM",
-              "period": 0.1
-            },
-            "x": 320.0,
-            "y": 256.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Drum Current",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/DrumCur",
-              "period": 0.1
-            },
-            "x": 640.0,
-            "y": 256.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Drum Supply Current",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/DrumSupplyCur",
-              "period": 0.1
-            },
-            "x": 960.0,
-            "y": 256.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
             "title": "Spindle RPS",
             "type": "Text Display",
             "properties": {
@@ -307,33 +146,23 @@
               "period": 0.1
             },
             "x": 0.0,
-            "y": 512.0,
+            "y": 0.0,
             "width": 256.0,
             "height": 128.0
           },
           {
-            "title": "Spindle Target RPS",
-            "type": "Text Display",
+            "title": "Spindle Target",
+            "type": "Radial Gauge",
             "properties": {
               "topic": "/SmartDashboard/Shooter/SpindleTargetRPS",
+              "min_value": -60.0,
+              "max_value": 60.0,
               "period": 0.1
             },
-            "x": 320.0,
-            "y": 512.0,
+            "x": 256.0,
+            "y": 0.0,
             "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Spindle Error RPS",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/SpindleErrorRPS",
-              "period": 0.1
-            },
-            "x": 640.0,
-            "y": 512.0,
-            "width": 256.0,
-            "height": 128.0
+            "height": 256.0
           },
           {
             "title": "Spindle At Speed",
@@ -342,20 +171,8 @@
               "topic": "/SmartDashboard/Shooter/SpindleAtSpeed",
               "period": 0.1
             },
-            "x": 960.0,
-            "y": 512.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Spindle Temp C",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Shooter/SpindleTempC",
-              "period": 0.2
-            },
-            "x": 1280.0,
-            "y": 512.0,
+            "x": 0.0,
+            "y": 128.0,
             "width": 256.0,
             "height": 128.0
           },
@@ -364,24 +181,184 @@
             "type": "Text Display",
             "properties": {
               "topic": "/SmartDashboard/Shooter/SpindleCur",
-              "period": 0.1
+              "period": 0.2
             },
             "x": 0.0,
-            "y": 768.0,
+            "y": 256.0,
             "width": 256.0,
             "height": 128.0
           },
           {
-            "title": "Drum RPM Graph",
-            "type": "Graph",
+            "title": "Spindle Temp",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Shooter/SpindleTempC",
+              "period": 0.5
+            },
+            "x": 256.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Drum RPM",
+            "type": "Text Display",
             "properties": {
               "topic": "/SmartDashboard/Shooter/DrumRPM",
-              "period": 0.06
+              "period": 0.1
             },
-            "x": 320.0,
-            "y": 768.0,
-            "width": 768.0,
+            "x": 512.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Drum Target",
+            "type": "Radial Gauge",
+            "properties": {
+              "topic": "/SmartDashboard/Shooter/DrumTargetRPM",
+              "min_value": -3600.0,
+              "max_value": 0.0,
+              "period": 0.1
+            },
+            "x": 768.0,
+            "y": 0.0,
+            "width": 256.0,
             "height": 256.0
+          },
+          {
+            "title": "Drum At Speed",
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/SmartDashboard/Shooter/DrumAtSpeed",
+              "period": 0.1
+            },
+            "x": 512.0,
+            "y": 128.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Drum Current",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Shooter/DrumCur",
+              "period": 0.2
+            },
+            "x": 512.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Drum Temp",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Shooter/DrumTempC",
+              "period": 0.5
+            },
+            "x": 768.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Goal Drum RPM",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Aim/DrumRPM",
+              "period": 0.1
+            },
+            "x": 512.0,
+            "y": 384.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Distance to Hub",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Aim/Distance",
+              "period": 0.1
+            },
+            "x": 768.0,
+            "y": 384.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Hood Degrees",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Hood/Degrees",
+              "period": 0.1
+            },
+            "x": 1024.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Hood Target",
+            "type": "Radial Gauge",
+            "properties": {
+              "topic": "/SmartDashboard/Hood/TargetDeg",
+              "min_value": 0.0,
+              "max_value": 27.5,
+              "period": 0.1
+            },
+            "x": 1280.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 256.0
+          },
+          {
+            "title": "Hood At Setpoint",
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/SmartDashboard/Hood/AtSetpoint",
+              "period": 0.1
+            },
+            "x": 1024.0,
+            "y": 128.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Goal Hood Deg",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Aim/HoodDeg",
+              "period": 0.1
+            },
+            "x": 1024.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Angle to Hub",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Aim/HubAngleDeg",
+              "period": 0.1
+            },
+            "x": 1280.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Hood Temp",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Hood/TempC",
+              "period": 0.5
+            },
+            "x": 1024.0,
+            "y": 384.0,
+            "width": 256.0,
+            "height": 128.0
           }
         ],
         "layouts": []
@@ -404,16 +381,18 @@
             "height": 128.0
           },
           {
-            "title": "Pivot Target Rot",
-            "type": "Text Display",
+            "title": "Pivot Target",
+            "type": "Radial Gauge",
             "properties": {
               "topic": "/SmartDashboard/Intake/PivotTargetRot",
+              "min_value": -0.05,
+              "max_value": 0.95,
               "period": 0.1
             },
-            "x": 320.0,
+            "x": 256.0,
             "y": 0.0,
             "width": 256.0,
-            "height": 128.0
+            "height": 256.0
           },
           {
             "title": "Pivot At Target",
@@ -422,8 +401,8 @@
               "topic": "/SmartDashboard/Intake/PivotAtTarget",
               "period": 0.1
             },
-            "x": 640.0,
-            "y": 0.0,
+            "x": 0.0,
+            "y": 128.0,
             "width": 256.0,
             "height": 128.0
           },
@@ -434,20 +413,32 @@
               "topic": "/SmartDashboard/Intake/Deployed",
               "period": 0.1
             },
-            "x": 960.0,
-            "y": 0.0,
+            "x": 0.0,
+            "y": 256.0,
             "width": 256.0,
             "height": 128.0
           },
           {
-            "title": "Pivot Temp C",
+            "title": "Pivot Current",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Intake/PivotCur",
+              "period": 0.2
+            },
+            "x": 256.0,
+            "y": 256.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Pivot Temp",
             "type": "Text Display",
             "properties": {
               "topic": "/SmartDashboard/Intake/PivotTempC",
-              "period": 0.2
+              "period": 0.5
             },
-            "x": 1280.0,
-            "y": 0.0,
+            "x": 0.0,
+            "y": 384.0,
             "width": 256.0,
             "height": 128.0
           },
@@ -458,20 +449,34 @@
               "topic": "/SmartDashboard/Intake/RollRPS",
               "period": 0.1
             },
-            "x": 0.0,
-            "y": 256.0,
+            "x": 512.0,
+            "y": 0.0,
             "width": 256.0,
             "height": 128.0
           },
           {
-            "title": "Roller Output",
-            "type": "Text Display",
+            "title": "Roller Target",
+            "type": "Radial Gauge",
             "properties": {
-              "topic": "/SmartDashboard/Intake/RollOut",
+              "topic": "/SmartDashboard/Intake/RollTargetRPS",
+              "min_value": 0.0,
+              "max_value": 60.0,
               "period": 0.1
             },
-            "x": 320.0,
-            "y": 256.0,
+            "x": 768.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 256.0
+          },
+          {
+            "title": "Pivot Limit Fault",
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/SmartDashboard/Intake/PivotSoftLimitFault",
+              "period": 0.1
+            },
+            "x": 512.0,
+            "y": 128.0,
             "width": 256.0,
             "height": 128.0
           },
@@ -480,46 +485,10 @@
             "type": "Text Display",
             "properties": {
               "topic": "/SmartDashboard/Intake/RollCur",
-              "period": 0.1
+              "period": 0.2
             },
-            "x": 640.0,
+            "x": 512.0,
             "y": 256.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Roller Supply Current",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Intake/RollSupplyCur",
-              "period": 0.1
-            },
-            "x": 960.0,
-            "y": 256.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Pivot Current",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Intake/PivotCur",
-              "period": 0.1
-            },
-            "x": 1280.0,
-            "y": 256.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Pivot Supply Current",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Intake/PivotSupplyCur",
-              "period": 0.1
-            },
-            "x": 0.0,
-            "y": 512.0,
             "width": 256.0,
             "height": 128.0
           },
@@ -530,10 +499,24 @@
               "topic": "/SmartDashboard/Hopper/AgitatorRPS",
               "period": 0.1
             },
-            "x": 320.0,
+            "x": 0.0,
             "y": 512.0,
             "width": 256.0,
             "height": 128.0
+          },
+          {
+            "title": "Agitator Target",
+            "type": "Radial Gauge",
+            "properties": {
+              "topic": "/SmartDashboard/Hopper/AgitatorTargetRPS",
+              "min_value": 0.0,
+              "max_value": 40.0,
+              "period": 0.1
+            },
+            "x": 256.0,
+            "y": 512.0,
+            "width": 256.0,
+            "height": 256.0
           },
           {
             "title": "Agitator At Speed",
@@ -542,305 +525,33 @@
               "topic": "/SmartDashboard/Hopper/AgitatorAtSpeed",
               "period": 0.1
             },
-            "x": 640.0,
+            "x": 512.0,
             "y": 512.0,
             "width": 256.0,
             "height": 128.0
           },
           {
-            "title": "Agitator Temp C",
+            "title": "Agitator Current",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Hopper/AgitatorCur",
+              "period": 0.2
+            },
+            "x": 512.0,
+            "y": 640.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Agitator Temp",
             "type": "Text Display",
             "properties": {
               "topic": "/SmartDashboard/Hopper/AgitatorTempC",
-              "period": 0.2
+              "period": 0.5
             },
-            "x": 960.0,
-            "y": 512.0,
+            "x": 768.0,
+            "y": 640.0,
             "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Hood Degrees",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Hood/Degrees",
-              "period": 0.1
-            },
-            "x": 0.0,
-            "y": 768.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Hood Target",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Hood/TargetDeg",
-              "period": 0.1
-            },
-            "x": 320.0,
-            "y": 768.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Hood Error",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Hood/ErrorDeg",
-              "period": 0.1
-            },
-            "x": 640.0,
-            "y": 768.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Hood At Setpoint",
-            "type": "Boolean Box",
-            "properties": {
-              "topic": "/SmartDashboard/Hood/AtSetpoint",
-              "period": 0.1
-            },
-            "x": 960.0,
-            "y": 768.0,
-            "width": 256.0,
-            "height": 128.0
-          },
-          {
-            "title": "Hood Temp C",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/Hood/TempC",
-              "period": 0.2
-            },
-            "x": 1280.0,
-            "y": 768.0,
-            "width": 256.0,
-            "height": 128.0
-          }
-        ],
-        "layouts": []
-      }
-    },
-    {
-      "name": "Power",
-      "grid_layout": {
-        "containers": [
-          {
-            "title": "PDH Total Current",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/TotalCurrent",
-              "period": 0.1
-            },
-            "x": 0.0,
-            "y": 0.0,
-            "width": 384.0,
-            "height": 128.0
-          },
-          {
-            "title": "PDH Voltage",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Voltage",
-              "period": 0.1
-            },
-            "x": 448.0,
-            "y": 0.0,
-            "width": 384.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 0",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/0",
-              "period": 0.2
-            },
-            "x": 0.0,
-            "y": 192.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 1",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/1",
-              "period": 0.2
-            },
-            "x": 224.0,
-            "y": 192.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 2",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/2",
-              "period": 0.2
-            },
-            "x": 448.0,
-            "y": 192.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 3",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/3",
-              "period": 0.2
-            },
-            "x": 672.0,
-            "y": 192.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 4",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/4",
-              "period": 0.2
-            },
-            "x": 896.0,
-            "y": 192.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 5",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/5",
-              "period": 0.2
-            },
-            "x": 1120.0,
-            "y": 192.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 6",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/6",
-              "period": 0.2
-            },
-            "x": 1344.0,
-            "y": 192.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 7",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/7",
-              "period": 0.2
-            },
-            "x": 1568.0,
-            "y": 192.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 8",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/8",
-              "period": 0.2
-            },
-            "x": 1792.0,
-            "y": 192.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 9",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/9",
-              "period": 0.2
-            },
-            "x": 2016.0,
-            "y": 192.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 10",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/10",
-              "period": 0.2
-            },
-            "x": 0.0,
-            "y": 384.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 11",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/11",
-              "period": 0.2
-            },
-            "x": 224.0,
-            "y": 384.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 12",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/12",
-              "period": 0.2
-            },
-            "x": 448.0,
-            "y": 384.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 13",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/13",
-              "period": 0.2
-            },
-            "x": 672.0,
-            "y": 384.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 14",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/14",
-              "period": 0.2
-            },
-            "x": 896.0,
-            "y": 384.0,
-            "width": 192.0,
-            "height": 128.0
-          },
-          {
-            "title": "Ch 15",
-            "type": "Text Display",
-            "properties": {
-              "topic": "/SmartDashboard/PDH/Channel/15",
-              "period": 0.2
-            },
-            "x": 1120.0,
-            "y": 384.0,
-            "width": 192.0,
             "height": 128.0
           }
         ],
@@ -852,16 +563,76 @@
       "grid_layout": {
         "containers": [
           {
-            "title": "Limelight",
-            "type": "Camera Stream",
+            "title": "Has Estimate",
+            "type": "Boolean Box",
             "properties": {
-              "topic": "/limelight",
-              "period": 0.033
+              "topic": "/SmartDashboard/Vision/HasEstimate",
+              "period": 0.2
             },
             "x": 0.0,
             "y": 0.0,
-            "width": 768.0,
-            "height": 768.0
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Tag Count",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Vision/TagCount",
+              "period": 0.2
+            },
+            "x": 256.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Avg Tag Dist",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Vision/AvgTagDist",
+              "period": 0.2
+            },
+            "x": 512.0,
+            "y": 0.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Fused Count",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Vision/FusedCount",
+              "period": 0.5
+            },
+            "x": 0.0,
+            "y": 128.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Reject Reason",
+            "type": "Text Display",
+            "properties": {
+              "topic": "/SmartDashboard/Vision/RejectReason",
+              "period": 0.2
+            },
+            "x": 256.0,
+            "y": 128.0,
+            "width": 256.0,
+            "height": 128.0
+          },
+          {
+            "title": "Heading Heal",
+            "type": "Boolean Box",
+            "properties": {
+              "topic": "/SmartDashboard/Vision/HeadingHeal",
+              "period": 0.2
+            },
+            "x": 512.0,
+            "y": 128.0,
+            "width": 256.0,
+            "height": 128.0
           }
         ],
         "layouts": []

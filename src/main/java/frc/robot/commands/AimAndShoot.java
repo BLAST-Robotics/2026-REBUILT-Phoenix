@@ -59,7 +59,7 @@ public class AimAndShoot extends Command {
         double distance = 0.0;
         double hoodDeg = 0.0;
         double rpm = 0.0;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) { //<3
             distance = muzzle.getDistance(hub.minus(fieldVel.times(tof)));
             hoodDeg = m_aimTables.hoodDegreesForDistance(distance);
             rpm = m_aimTables.shooterRpmForDistance(distance);
@@ -71,6 +71,8 @@ public class AimAndShoot extends Command {
         SmartDashboard.putNumber("Aim/Distance", distance);
         SmartDashboard.putNumber("Aim/HoodDeg", hoodDeg);
         SmartDashboard.putNumber("Aim/DrumRPM", rpm);
+        SmartDashboard.putNumber("Aim/HubAngleDeg",
+            hub.minus(muzzle).getAngle().minus(pose.getRotation()).getDegrees());
 
         m_hood.setHoodDegrees(hoodDeg);
         m_shooter.setDrumRpm(rpm);
@@ -79,6 +81,6 @@ public class AimAndShoot extends Command {
 
     @Override
     public void end(boolean interrupted) {
-        m_shooter.stopAll();
+        m_shooter.killOutputs();
     }
 }

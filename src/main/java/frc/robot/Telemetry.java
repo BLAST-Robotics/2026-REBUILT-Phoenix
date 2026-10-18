@@ -14,6 +14,7 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.networktables.StructArrayPublisher;
 import edu.wpi.first.networktables.StructPublisher;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -31,6 +32,8 @@ public class Telemetry {
     public Telemetry(double maxSpeed) {
         MaxSpeed = maxSpeed;
         SignalLogger.start();
+
+        SmartDashboard.putData("Field", field);
 
         /* Set up the module state Mechanism2d telemetry */
         for (int i = 0; i < 4; ++i) {
@@ -51,7 +54,8 @@ public class Telemetry {
     private final DoublePublisher driveTimestamp = driveStateTable.getDoubleTopic("Timestamp").publish();
     private final DoublePublisher driveOdometryFrequency = driveStateTable.getDoubleTopic("OdometryFrequency").publish();
 
-    /* Robot pose for field positioning */
+    /* Robot pose for field positioning (Elastic Field widget reads this). */
+    public final Field2d field = new Field2d();
     private final NetworkTable table = inst.getTable("Pose");
     private final DoubleArrayPublisher fieldPub = table.getDoubleArrayTopic("robotPose").publish();
     private final StringPublisher fieldTypePub = table.getStringTopic(".type").publish();
@@ -94,6 +98,8 @@ public class Telemetry {
         driveModulePositions.set(state.ModulePositions);
         driveTimestamp.set(state.Timestamp);
         driveOdometryFrequency.set(1.0 / state.OdometryPeriod);
+        SmartDashboard.putNumber("DriveState/SpeedMS",
+            Math.hypot(state.Speeds.vxMetersPerSecond, state.Speeds.vyMetersPerSecond));
 
         /* Also write to log file */
         SignalLogger.writeStruct("DriveState/Pose", Pose2d.struct, state.Pose);
@@ -106,6 +112,8 @@ public class Telemetry {
 
         /* Telemeterize the pose to a Field2d */
         fieldTypePub.set("Field2d");
+
+        field.setRobotPose(state.Pose);
 
         m_poseArray[0] = state.Pose.getX();
         m_poseArray[1] = state.Pose.getY();
