@@ -208,24 +208,32 @@ public final class Constants {
         // Direction is passed as an explicit InvertedValue in Hood.
         public static final double kHoodDegreesPerRotation = 360.0; // through-bore = 1 rot = 360 deg
 
-        // Hold tune (10/19): KP 25 / KD 0.5 / KS 0.3 with UseClosedLoopSign
-        // buzzed at the setpoint. The static-friction term was flipping sign
-        // on noise around zero error; switched to UseVelocitySign and cut KD
+        // Hold tune (10/19): the static-friction term was flipping sign on
+        // noise around zero error; switched to UseVelocitySign and cut KD
         // (derivative on a 50 Hz CANcoder only adds noise). MotionMagic's
         // profile supplies the velocity feedforward, so KD is not needed.
+        // 10/20: kS (now 0.25, halved from the 1678-style 0.45 bench start)
+        // a middle profile - snappier than the original, less jumpy than
+        // the 25/5 sweep.
         public static final double kHoodKP = 15.0;
         public static final double kHoodKI = 0.0;
         public static final double kHoodKD = 0.0;
-        public static final double kHoodKS = 0.15;
-        public static final double kHoodKV = 3.0;
+        public static final double kHoodKV = 4.0;
+        // MotionMagic profile (mechanism rot/s through the 29.6:1 winch).
+        public static final double kHoodMMCruiseRps = 3.0;
+        public static final double kHoodMMAccelRps2 = 18.0;
+        public static final double kHoodMMJerkRps3 = 75.0;
         // Ignore aim-target changes smaller than this so pose noise doesn't
         // re-seed MotionMagic every loop (another source of visible buzz).
         public static final double kHoodTargetDeadbandDeg = 0.15;
-        // Gravity hold: EXPERIMENT 10/10 — constant +0.3 V is SUSPECTED of
-        // pinning B (it assists stow-ward motion and fights deploy-ward).
-        // Zeroed until the drift direction is observed; then re-apply with
-        // the correct sign.
-        public static final double kHoodKG = 0.0;
+        // Gravity hold, MEASURED 10/20 by parked-offset math (both runs agree):
+        // kG 0 parked the hood -5.5 deg (KP 15) => G = 5.5/360*15 = 0.23 V;
+        // kG 0.5 parked +4.6 deg (KP 25) => G = 0.18 V. kS (UseVelocitySign)
+        // does nothing at zero speed, so kG is the ONLY static gravity
+        // counter. Set to the measured 0.20 V; parked error should sit near
+        // zero. Nudge in 0.02 steps if it hangs.
+        public static final double kHoodKG = 0.20;
+        public static final double kHoodKS = 0.25;
 
         public static final double kHoodSupplyLimit = 40.0;
         public static final double kHoodStatorLimit = 60.0;
@@ -267,26 +275,28 @@ public final class Constants {
         // (distance, hood degrees) breakpoints — BOOT-RELATIVE DELTAS.
         // Bench 10/14: hood fully DOWN (0) at 1.745 m; ramps up beyond.
         // VERIFY remaining points by shooting.
+        // 10/20: slope reduced ~20% (3->9.5 becomes 3->8.0), the ball with
+        // +300 RPM carries some of the flattening itself.
         public static final double[][] kDistanceToHoodDeg = {
                     {0.5, 3.0},
-                    {1.0, 3.5},
-                    {1.5, 5.0},
-                    {2.0, 6.5},
-                    {2.5, 8.0},
-                    {3.0, 9.0},
-                    {3.5, 9.0},
-                    {4.0, 9.5},
+                    {1.0, 3.4},
+                    {1.5, 4.6},
+                    {2.0, 5.8},
+                    {2.5, 7.0},
+                    {3.0, 7.8},
+                    {3.5, 7.8},
+                    {4.0, 8.0},
         };
 
         public static final double[][] kDistanceToRPM = {
-                    {0.5, 2800.0},
-                    {1.0, 3050.0},
-                    {1.5, 3200.0},
-                    {2.0, 3450.0},
-                    {2.5, 3700.0},
-                    {3.0, 3900.0},
-                    {3.5, 4200.0},
-                    {4.0, 4450.0},
+                    {0.5, 3100.0},
+                    {1.0, 3350.0},
+                    {1.5, 3500.0},
+                    {2.0, 3750.0},
+                    {2.5, 4000.0},
+                    {3.0, 4200.0},
+                    {3.5, 4500.0},
+                    {4.0, 4750.0},
         };
     }
 

@@ -56,16 +56,23 @@ public class Hood extends SubsystemBase {
             .withStaticFeedforwardSign(
                 com.ctre.phoenix6.signals.StaticFeedforwardSignValue.UseVelocitySign));
         // Physics cap: motor tops ~100 rot/s ÷ 29.6 ≈ 3.4 mech rot/s.
-        // Demanding cruise 10 saturated the output permanently (bang-bang
-        // stutter + crawl). A trackable profile is faster in practice.
+        // Cruise 4 saturates briefly (over-speed demand), which is MORE
+        // aggressive on purpose: the loop pulls harder mid-move and the
+        // profile finishes sooner.
         m_motor.getConfigurator().apply(new MotionMagicConfigs()
-            .withMotionMagicCruiseVelocity(2.5)
-            .withMotionMagicAcceleration(15.0)
-            .withMotionMagicJerk(60.0));
+            .withMotionMagicCruiseVelocity(Constants.Hood.kHoodMMCruiseRps)
+            .withMotionMagicAcceleration(Constants.Hood.kHoodMMAccelRps2)
+            .withMotionMagicJerk(Constants.Hood.kHoodMMJerkRps3));
         // Rio-bus CAN relief: auxiliaries don't need 100 Hz feedback.
-        m_motor.getPosition().setUpdateFrequency(50);
-        m_motor.getVelocity().setUpdateFrequency(20);
-        m_encoder.getAbsolutePosition().setUpdateFrequency(50);
+        // 10/20: position back to 100 Hz though — at 50 Hz the fused
+        // CANcoder sample lags reality ~3.6 deg per half-step at the hot
+        // profile (3 rot/s x 20 ms), which showed up as overshoot-dip-
+        // return on the Hood graph (stale loop corrects against old data).
+        // The drum consumes ~9 signals on the rio bus; a single extra
+        // 100 Hz hood position is affordable again.
+        m_motor.getPosition().setUpdateFrequency(100);
+        m_motor.getVelocity().setUpdateFrequency(100);
+        m_encoder.getAbsolutePosition().setUpdateFrequency(100);
 
         // Elastic reset button: re-capture datum live (stow by hand first).
         SmartDashboard.putData("Reset Hood", rehomeCommand());
@@ -192,6 +199,17 @@ public class Hood extends SubsystemBase {
         SmartDashboard.putNumber("Hood/SupplyCur", m_motor.getSupplyCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Hood/TempC", m_motor.getDeviceTemp().getValueAsDouble());
         SmartDashboard.putBoolean("Hood/Homed", m_homed);
+        // Sag-vs-control tell (same as Shooter/DrumVoltage/DrumDuty): duty
+        // near 1.0 with error left = out of VOLTAGE (battery sag / supply
+        // current limits), low duty with error = control/gains problem.
+        SmartDashboard.putNumber("Hood/Duty",
+            Math.abs(m_motor.getDutyCycle().getValueAsDouble()));
+        SmartDashboard.putNumber("Hood/Voltage",
+            Math.abs(m_motor.getMotorVoltage().getValueAsDouble()));
+        // The under-voltage fault bit flips when the battery bus dips while
+        // the drivetrain + drum are pulling hard.
+        SmartDashboard.putBoolean("Hood/UndervoltFault",
+            m_motor.getFault_Undervoltage().getValue());
         var hoodFault = m_motor.getFault_ReverseSoftLimit().getValue()
             || m_motor.getFault_ForwardSoftLimit().getValue();
         SmartDashboard.putBoolean("Hood/SoftLimitFault", hoodFault);
