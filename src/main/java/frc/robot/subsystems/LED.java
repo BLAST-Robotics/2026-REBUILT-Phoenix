@@ -34,16 +34,25 @@ public class LED extends SubsystemBase {
 
     /** Sets the whole strip to a single solid color. */
     public void setColor(RGBWColor color) {
+        if (!Constants.Enabled.kLED) {
+            return;
+        }
         m_candle.setControl(
             new SolidColor(Constants.LED.kFirstLED, m_ledCount - 1).withColor(color));
     }
 
     public void setRainbow() {
+        if (!Constants.Enabled.kLED) {
+            return;
+        }
         m_candle.setControl(new RainbowAnimation(Constants.LED.kFirstLED, m_ledCount - 1));
     }
 
     /** Strobe the whole strip the given color. */
     public void setStrobe(RGBWColor color) {
+        if (!Constants.Enabled.kLED) {
+            return;
+        }
         m_candle.setControl(
             new StrobeAnimation(Constants.LED.kFirstLED, m_ledCount - 1).withColor(color));
     }

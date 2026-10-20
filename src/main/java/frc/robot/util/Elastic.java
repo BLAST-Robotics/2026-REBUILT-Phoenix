@@ -5,6 +5,9 @@
 
 package frc.robot.util;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.networktables.PubSubOption;
 import edu.wpi.first.networktables.StringPublisher;
@@ -19,6 +22,7 @@ public final class Elastic {
       NetworkTableInstance.getDefault().getStringTopic("/Elastic/SelectedTab");
   private static final StringPublisher selectedTabPublisher =
       selectedTabTopic.publish(PubSubOption.keepDuplicates(true));
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   /**
    * Represents the possible levels of notifications for the Elastic dashboard. These levels are
@@ -40,7 +44,11 @@ public final class Elastic {
    * @param notification the {@link Notification} object containing notification details
    */
   public static void sendNotification(Notification notification) {
-    notificationPublisher.set(notification.toJson());
+    try {
+      notificationPublisher.set(objectMapper.writeValueAsString(notification));
+    } catch (JsonProcessingException e) {
+      e.printStackTrace();
+    }
   }
 
   /**
@@ -72,16 +80,22 @@ public final class Elastic {
    * notification is displayed on the dashboard.
    */
   public static class Notification {
+    @JsonProperty("level")
     private NotificationLevel level;
 
+    @JsonProperty("title")
     private String title;
 
+    @JsonProperty("description")
     private String description;
 
+    @JsonProperty("displayTime")
     private int displayTimeMillis;
 
+    @JsonProperty("width")
     private double width;
 
+    @JsonProperty("height")
     private double height;
 
     /**
@@ -371,20 +385,6 @@ public final class Elastic {
     public Notification withNoAutoDismiss() {
       setDisplayTimeMillis(0);
       return this;
-    }
-
-    /** Serializes this notification to the JSON format Elastic expects. */
-    public String toJson() {
-      return "{\"level\":\"" + level.name() + "\","
-          + "\"title\":\"" + escape(title) + "\","
-          + "\"description\":\"" + escape(description) + "\","
-          + "\"displayTime\":" + displayTimeMillis + ","
-          + "\"width\":" + width + ","
-          + "\"height\":" + height + "}";
-    }
-
-    private static String escape(String s) {
-      return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
   }
 }

@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>REBUILT Aim Model — valid shot region</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: #14171c; color: #d7dde5;
+         font-family: "Segoe UI", system-ui, sans-serif; font-size: 13px; }
+  h1 { font-size: 16px; margin: 0 0 4px; font-weight: 600; }
+  .sub { color: #8b97a7; margin-bottom: 12px; }
+  .wrap { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .panel { background: #1b2027; border: 1px solid #2b333d; border-radius: 8px; padding: 10px; }
+  .panel h2 { font-size: 13px; margin: 0 0 8px; font-weight: 600; color: #9fb0c4; }
+  canvas { display: block; border-radius: 6px; background: #14171c; }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr));
+              gap: 10px 18px; margin-top: 14px; max-width: 1500px; }
+  .ctrl label { display: flex; justify-content: space-between; color: #9fb0c4; font-size: 12px; }
+  .ctrl input[type=range] { width: 100%; margin-top: 2px; }
+  .val { color: #f0f4f8; font-variant-numeric: tabular-nums; }
+  .readout { margin-top: 10px; font-variant-numeric: tabular-nums; line-height: 1.7; }
+  .readout b { color: #fff; }
+  .opt { color: #5aa9ff; } .lo { color: #ff6b6b; } .hi { color: #4fd67a; }
+  table { border-collapse: collapse; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 3px 10px; text-align: right; border-bottom: 1px solid #2b333d; }
+  th { color: #9fb0c4; font-weight: 600; }
+  td:first-child, th:first-child { text-align: left; }
+  .hint { color: #6f7d8d; font-size: 11px; }
+</style>
+</head>
+<body>
+<h1>REBUILT — valid shot region &amp; most-robust shot</h1>
+<div class="sub">Launch = 78° − hoodDeg · drum 3.0", rollers 1.125" @40:24 · Kraken X60 24:15 overdrive (9600 rpm mechanical, capped by motor power) · muzzle 21in → rim 72in · drag + backspin lift · FUEL 5.91" / 0.21 kg · 1:1 trajectory scale</div>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>Trajectory map (hub at x = 0)</h2>
+    <canvas id="traj" width="740" height="540"></canvas>
+  </div>
+  <div class="panel">
+    <h2>Valid shot region (angle vs speed)</h2>
+    <canvas id="region" width="520" height="430"></canvas>
+    <div class="readout" id="readout"></div>
+    <div class="readout" id="modelCheck" style="border-top:1px solid #2b333d; margin-top:8px; padding-top:8px;"></div>
+    <div class="readout" id="rangeCheck" style="border-top:1px solid #2b333d; margin-top:8px; padding-top:8px;"></div>
+  </div>
+</div>
+
+<div class="controls" id="controls"></div>
+
+<div class="controls" style="margin-top:10px; align-items:center;">
+  <div class="ctrl">
+    <label style="color:#9fb0c4;">Arc objective</label>
+    <select id="objective" style="width:100%;background:#1b2027;color:#d7dde5;border:1px solid #3a5f84;border-radius:5px;padding:4px 6px;"></select>
+  </div>
+  <div class="ctrl" id="objParamWrap" style="display:none;">
+    <label style="color:#9fb0c4;" id="objParamLabel">parameter</label>
+    <input id="objParam" type="number" step="0.1" value="45" style="width:100%;background:#1b2027;color:#d7dde5;border:1px solid #3a5f84;border-radius:5px;padding:4px 6px;">
+  </div>
+  <div class="ctrl">
+    <label style="color:#9fb0c4;">Motor usable speed <span class="val" id="v_motorFrac">50% free</span></label>
+    <input id="motorFrac" type="range" min="0.3" max="1" step="0.05" value="0.5">
+  </div>
+</div>
+
+<div class="panel" style="margin-top:16px; max-width:1500px;">
+  <h2>Precomputed lookup — distance to hub (stationary)
+    <span id="gpuStatus" class="hint" style="float:right; margin-right:10px;"></span>
+    <button id="recompute" style="float:right;background:#24415f;border:1px solid #3a5f84;color:#cfe2f5;border-radius:5px;padding:3px 10px;cursor:pointer;">Recompute</button>
+  </h2>
+  <div style="display:flex; gap:20px; flex-wrap:wrap;">
+    <canvas id="map" width="840" height="470"></canvas>
+    <canvas id="curve" width="560" height="470"></canvas>
+  </div>
+  <div class="hint" id="mapHint">shaded band = valid launch angles per distance · colour = speed tolerance (blue=wide) · solid = hood · dashed = rpm</div>
+</div>
+
+<div class="panel" style="margin-top:16px; max-width:1500px;">
+  <h2>Shoot on the move — distance × radial velocity (selected objective)
+    <label class="hint" style="float:right;">colour =
+      <select id="vrMetric" style="background:#1b2027;color:#d7dde5;border:1px solid #3a5f84;border-radius:5px;padding:2px 6px;">
+        <option value="hood">hood angle</option>
+        <option value="rpm">drum rpm</option>
+        <option value="tol">speed tolerance</option>
+      </select>
+    </label>
+  </h2>
+  <canvas id="vrmap" width="1180" height="470"></canvas>
+  <div class="hint">x = distance to hub · y = radial velocity (+ toward hub) · white box = current operating point · dark cells = objective not feasible</div>
+</div>
+
+<div class="panel" style="margin-top:16px; max-width:1500px;">
+  <h2>Precomputed table (stationary, selected objective)</h2>
+  <div style="display:flex; gap:40px; flex-wrap:wrap;">
+    <div><div class="hint">new model</div><table id="tblNew"></table></div>
+    <div><div class="hint">current Constants</div><table id="tblOld"></table></div>
+    <div style="min-width:330px;">
+      <div class="hint" style="display:flex; align-items:center; gap:8px;">
+        <span>Java export (rounded to 50 rpm)</span>
+        <button id="copyJava" style="background:#24415f;border:1px solid #3a5f84;color:#cfe2f5;border-radius:5px;padding:2px 10px;cursor:pointer;">Copy</button>
+        <span id="copyNote" class="hint"></span>
+      </div>
+      <textarea id="javaOut" readonly spellcheck="false"
+        style="width:100%;height:190px;margin-top:4px;background:#14171c;color:#cfe2f5;border:1px solid #2b333d;border-radius:6px;padding:8px;font-family:Consolas,monospace;font-size:12px;white-space:pre;"></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= physics model ================= */
+const RHO = 1.225, G = 9.81;
+const RB = 0.150114/2, AREA = Math.PI*RB*RB;
+const SDRUM = Math.PI*0.0762;               // m per drum rev (3.0in drum, per Constants)
+const SROLL = (40.0/24.0)*Math.PI*0.028575; // m per drum rev (1.125in rollers, 40:24, opposite)
+const SPINREV = (SDRUM - SROLL)/(2*RB);     // ball backspin rad per drum rev
+const EXITREV = (SDRUM + SROLL)/2;          // m of ball travel per drum rev (pre-slip)
+const Y0 = 21*0.0254, YT = 1.8288;          // muzzle 21in -> hub rim 72in
+const HUBW = 47*0.0254;                     // HUB outer footprint 47in square
+const FUNNEL_H = 12*0.0254;                 // sketched funnel depth BELOW the opening
+const FUNNEL_THROAT = 0.55;                 // throat width as a fraction of the opening
+const OPEN = 1.0592;                        // 41.7in opening, ball centre must land within
+const HOOD_MAX = 27.5, LAUNCH_ZERO = 78;
+
+// ---- drum drive + Kraken X60 power model (24:15 overdrive) ----
+const GEAR_DRUM_PER_MOTOR = 24/15;          // drum rpm = motor rpm x 24/15
+const MOTOR_FREE_RPM = 6000;                // Kraken X60 free speed
+const MOTOR_STALL_TQ = 9.36;                // Kraken X60 (FOC) stall torque, N·m
+const DRUM_FREE_RPM  = MOTOR_FREE_RPM * GEAR_DRUM_PER_MOTOR;  // 9600 rpm at zero torque
+let   MOTOR_USABLE_FRAC = 0.5;              // usable fraction of free speed (power peaks near 0.5)
+let   MAX_RPM = DRUM_FREE_RPM * MOTOR_USABLE_FRAC;            // effective drum ceiling
+function motorState(drumRpm) {
+  const motorRpm = drumRpm / GEAR_DRUM_PER_MOTOR;
+  const frac = motorRpm / MOTOR_FREE_RPM;                 // 0 = stall, 1 = free speed
+  const torque = MOTOR_STALL_TQ * Math.max(0, 1 - frac);
+  const power  = torque * motorRpm * Math.PI / 30;        // W
+  return { motorRpm, frac, torque, power };
+}
+const MOTOR_PEAK_POWER = MOTOR_STALL_TQ * (MOTOR_FREE_RPM*Math.PI/30) / 4;
+
+// robot bounding box relative to the muzzle (x = 0, +x toward the hub)
+const ROBOT_FWD  = 10*0.0254;               // front edge sits 10 in ahead of the muzzle
+const ROBOT_BACK = 20*0.0254;               // rear edge sits 20 in behind the muzzle
+const ROBOT_H    = 22.5*0.0254;             // robot height
+// closest the muzzle may get to the hub centre before the robot body hits the
+// 47 in HUB footprint (the hub is solid to 72 in, so the 22.5 in robot clips it)
+const ROBOT_MIN_D = HUBW/2 + ROBOT_FWD;     // 23.5 in + 10 in = 33.5 in = 0.851 m
+
+const P = { slip:0.65, mass:0.21, cd:0.5, km:0.3 };
+
+/* ===== GPU lookup-grid geometry + shared handle ===== */
+const GRID = { TH_MIN:30, TH_MAX:88, TH_STEP:0.5, V_MIN:0.3, V_MAX:21.0, NV:384,
+               VR_MIN:-3, VR_MAX:3, VR_N:13, X_MAX:7.0, DT:0.0005, MAXSTEPS:8000 };
+GRID.NTH = Math.round((GRID.TH_MAX-GRID.TH_MIN)/GRID.TH_STEP)+1;
+GRID.V_STEP = (GRID.V_MAX-GRID.V_MIN)/(GRID.NV-1);
+GRID.VR_STEP = (GRID.VR_MAX-GRID.VR_MIN)/(GRID.VR_N-1);
+let XC = null;                              // Float32Array(NV*NTH*VR_N): descending crossing x (rim plane YT)
+let XCH = null;                             // matching array: crossing x of the clearance plane YT+RB
+const GPU = { ok:false, note:'cpu' };
+
+// integrate a shot; returns {x, desc, path} or null (fell short). x=1e9 => still above rim at maxX.
+function sim(thetaDeg, v, vr, maxX) {
+  const th = thetaDeg*Math.PI/180;
+  const vx0 = v*Math.cos(th) + vr, vy0 = v*Math.sin(th);
+  const rpm = v*60/(EXITREV*P.slip);
+  const omega = SPINREV*rpm/60;
+  const Cl = P.km*(omega*RB/Math.max(v,1e-6));
+  let x = 0, y = Y0, vx = vx0, vy = vy0, path = [[x,y]];
+  let xhi = -1;                                // descending crossing of y = YT+RB (ball-radius clearance plane)
+  const dt = 0.0005, XC = maxX || 30;
+  const YH = YT + RB;
+  for (let i=0;i<60000;i++) {
+    const sp = Math.sqrt(vx*vx+vy*vy)||1e-9, ux = vx/sp, uy = vy/sp;
+    const q = 0.5*RHO*AREA*sp*sp/P.mass, drag = P.cd*q, lift = Cl*q;
+    const vx2 = vx + (-drag*ux + lift*(-uy))*dt/2, vy2 = vy + (-G - drag*uy + lift*ux)*dt/2;
+    const sp2 = Math.sqrt(vx2*vx2+vy2*vy2)||1e-9, ux2 = vx2/sp2, uy2 = vy2/sp2;
+    const q2 = 0.5*RHO*AREA*sp2*sp2/P.mass, drag2 = P.cd*q2, lift2 = Cl*q2;
+    const nx = x + vx2*dt, ny = y + vy2*dt;
+    const nvx = vx + (-drag2*ux2 + lift2*(-uy2))*dt;
+    const nvy = vy + (-G - drag2*uy2 + lift2*ux2)*dt;
+    if (y >= YH && ny < YH) xhi = x;
+    if (y >= YT && ny < YT) { path.push([x,y]); return { x, xhi, desc:Math.atan2(-nvy,nvx)*180/Math.PI, path }; }
+    x = nx; y = ny; vx = nvx; vy = nvy;
+    if (i%3===0) path.push([x,y]);
+    if (y < -1) return null;
+    if (x > XC) return y >= YT ? { x:1e9, xhi, desc:0, path } : null;
+  }
+  return null;
+}
+
+// speed whose descending crossing is at x = targetX (bisection).
+// Uses the GPU lookup grid when available (interpolation only), else integrates on the CPU.
+function vForCross(thetaDeg, vr, targetX, iters) {
+  iters = iters || 42;
+  if (GPU.ok && XC) {
+    if (xLat(thetaDeg, GRID.V_MAX, vr) < targetX) return null;
+    let lo = GRID.V_MIN, hi = GRID.V_MAX;
+    for (let i=0;i<iters;i++) { const m = (lo+hi)/2;
+      if (xLat(thetaDeg, m, vr) >= targetX) hi = m; else lo = m; }
+    return hi;
+  }
+  const maxX = targetX + 8;
+  let lo = GRID.V_MIN, hi = GRID.V_MAX;
+  const rh = sim(thetaDeg, hi, vr, maxX);
+  if (!rh || rh.x < targetX) return null;
+  for (let i=0;i<iters;i++) { const m = (lo+hi)/2; const r = sim(thetaDeg, m, vr, maxX);
+    if (r && r.x >= targetX) hi = m; else lo = m; }
+  return hi;
+}
+
+// valid region: for each angle, [vLo, vHi]
+function region(d, vr, step, iters) {
+  step = step || 0.5; iters = iters || 42;
+  const out = [];
+  const xFront = d - OPEN/2;          // near edge of the opening
+  const xBack  = d + OPEN/2 - RB;     // ball centre must fit inside the far edge
+  for (let th = 30; th <= 88; th += step) {
+    const vHi  = vForCross(th, vr, xBack,  iters);
+    const vLo0 = vForCross(th, vr, xFront, iters);
+    if (vHi==null || vLo0==null || vHi <= vLo0) continue;
+    // reject arcs whose path is not above the rim at the opening's near edge
+    if (!clearFront(d, th, vHi, vr)) continue;
+    // raise the lower bound to the first speed that clears that edge
+    let a = vLo0, b = vHi;
+    for (let i=0;i<iters;i++) { const m = (a+b)/2; if (clearFront(d, th, m, vr)) b = m; else a = m; }
+    const vLo = b;
+    if (vHi <= vLo) continue;
+    out.push({ th, vLo, vHi });
+  }
+  return out;
+}
+
+function angleRangeAtV(reg, v) {
+  let lo = null, hi = null;
+  for (const r of reg) if (v >= r.vLo && v <= r.vHi) { if (lo===null) lo = r.th; hi = r.th; }
+  return [lo, hi];
+}
+
+// most robust shot: maximise the smallest normalised margin (largest inscribed box)
+function optimal(reg) {
+  if (!reg.length) return null;
+  const thMin = reg[0].th, thMax = reg[reg.length-1].th;
+  let vMin = Infinity, vMax = -Infinity;
+  for (const r of reg) { vMin = Math.min(vMin,r.vLo); vMax = Math.max(vMax,r.vHi); }
+  const dT = thMax-thMin || 1, dV = vMax-vMin || 1;
+  let best = null;
+  for (const r of reg) {
+    const v = (r.vLo+r.vHi)/2;
+    const [lo,hi] = angleRangeAtV(reg, v);
+    if (lo===null) continue;
+    const mV = Math.min(v-r.vLo, r.vHi-v)/dV;
+    const mA = Math.min(r.th-lo, hi-r.th)/dT;
+    const score = Math.min(mV, mA);
+    if (!best || score > best.score) best = { score, th:r.th, v, vTol:(r.vHi-r.vLo)/2, aLo:r.th-lo, aHi:hi-r.th };
+  }
+  return best;
+}
+
+/* ---- candidate objectives for the arc-optimization dropdown ---- */
+const OBJECTIVES = [
+  ['robust','Most-robust (max margin)'],
+  ['steepest','Steepest feasible'],
+  ['minRpm','Lowest RPM'],
+  ['maxRpm','Highest RPM'],
+  ['speedTol','Max speed tolerance'],
+  ['angleTol','Max angle tolerance'],
+  ['descent','Fixed descent angle'],
+  ['apex','Specific max height'],
+  ['tof','Specific time of flight'],
+];
+const OBJ_PARAM = {
+  descent:{ def:45,  unit:'deg', label:'target descent angle' },
+  apex:   { def:2.0, unit:'m',   label:'target apex height' },
+  tof:    { def:1.0, unit:'s',   label:'target time of flight' },
+};
+
+// apex / time-of-flight / descent angle of a shot, from the trajectory itself
+function shotMetrics(th, v, vr) {
+  const r = sim(th, v, vr);
+  if (!r) return { desc:null, apex:null, tof:null, x:null };
+  let apex = 0; for (const p of r.path) if (p[1] > apex) apex = p[1];
+  return { desc:r.desc, apex, tof:(r.path.length-1)*0.0005*3, x:r.x };
+}
+
+// pick the shot inside the valid region that best satisfies the chosen objective
+function optimizeShot(reg, vr, obj, param) {
+  if (!reg.length) return null;
+  // only launch angles the hood can actually produce (hood 0..27.5 -> launch 78..50.5)
+  const cand = reg.filter(r => r.th <= LAUNCH_ZERO + 1e-9 && r.th >= LAUNCH_ZERO - HOOD_MAX - 1e-9);
+  if (!cand.length) return null;
+  if (obj === 'robust') return optimal(cand);
+  const mid = r => (r.vLo + r.vHi) / 2;
+  const rpmOf = v => v * 60 / (EXITREV * P.slip);
+  const mk = (r, v) => {
+    const [lo,hi] = angleRangeAtV(cand, v);
+    return { th:r.th, v, vTol:(r.vHi-r.vLo)/2, aLo: lo===null?0:r.th-lo, aHi: hi===null?0:hi-r.th };
+  };
+  let best = null, bestScore = -Infinity;
+  for (const r of cand) {
+    const v = mid(r), rpm = rpmOf(v);
+    let score = -Infinity;
+    switch (obj) {
+      case 'steepest': score = rpm <= MAX_RPM ? r.th : -Infinity; break;
+      case 'minRpm':   score = -rpm; break;
+      case 'maxRpm':   score = rpm <= MAX_RPM ? rpm : -Infinity; break;
+      case 'speedTol': score = rpm <= MAX_RPM ? (r.vHi - r.vLo) : -Infinity; break;
+      case 'angleTol': { const [lo,hi]=angleRangeAtV(cand,v);
+                         score = (lo===null || rpm > MAX_RPM) ? -Infinity : Math.min(r.th-lo, hi-r.th); break; }
+      case 'descent':  { const m=shotMetrics(r.th,v,vr); score = m.desc==null?-Infinity:-Math.abs(m.desc-param); break; }
+      case 'apex':     { const m=shotMetrics(r.th,v,vr); score = m.apex==null?-Infinity:-Math.abs(m.apex-param); break; }
+      case 'tof':      { const m=shotMetrics(r.th,v,vr); score = m.tof==null?-Infinity:-Math.abs(m.tof-param); break; }
+    }
+    if (score > bestScore) { bestScore = score; best = mk(r, v); }
+  }
+  if (!best) { const r = cand[cand.length-1]; best = mk(r, mid(r)); }   // fallback
+  best.score = bestScore;
+  return best;
+}
+
+function shotAt(d, vr, obj, param) {
+  const reg = region(d, vr);
+  const o = optimizeShot(reg, vr, obj, param);
+  if (!o) return null;
+  const rpm = o.v*60/(EXITREV*P.slip);
+  return { ...o, reg, rpm, hood: LAUNCH_ZERO - o.th, metrics: shotMetrics(o.th, o.v, vr) };
+}
+
+/* ================= sliders ================= */
+const PARAMS = [
+  ['d',  'Distance to hub (m)', 0.5, 4.5, 0.05, 1.5, 2],
+  ['vr', 'Radial velocity (m/s, +toward hub)', -3, 3, 0.1, 0, 1],
+  ['slip','Surface-speed slip', 0.4, 1.05, 0.01, 0.65, 2],
+  ['mass','Ball mass (kg)', 0.15, 0.30, 0.005, 0.21, 3],
+  ['cd',  'Drag Cd', 0.2, 1.0, 0.05, 0.5, 2],
+  ['km',  'Magnus k (Cl = k·spinRatio)', 0.0, 0.6, 0.02, 0.3, 2],
+];
+const state = {};
+const controls = document.getElementById('controls');
+for (const [id,label,mn,mx,st,def,dec] of PARAMS) {
+  state[id] = def;
+  const div = document.createElement('div'); div.className = 'ctrl';
+  div.innerHTML = `<label>${label} <span class="val" id="v_${id}">${def.toFixed(dec)}</span></label>
+                   <input type="range" id="s_${id}" min="${mn}" max="${mx}" step="${st}" value="${def}">`;
+  controls.appendChild(div);
+  div.querySelector('input').addEventListener('input', e => {
+    state[id] = parseFloat(e.target.value);
+    document.getElementById('v_'+id).textContent = state[id].toFixed(dec);
+    if (id==='slip') P.slip = state.slip;
+    if (id==='mass') P.mass = state.mass;
+    if (id==='cd')   P.cd = state.cd;
+    if (id==='km')   P.km = state.km;
+    render();
+  });
+  div.querySelector('input').addEventListener('change', () => {
+    if (id==='slip'||id==='mass'||id==='cd'||id==='km') { rebuildLUT(); precompute(); }
+  });
+}
+
+/* ---- objective dropdown ---- */
+state.objective = 'robust';
+state.objParam = 45;
+const objSel = document.getElementById('objective');
+for (const [v,label] of OBJECTIVES) { const o = document.createElement('option'); o.value = v; o.textContent = label; objSel.appendChild(o); }
+objSel.value = state.objective;
+function syncObjParam() {
+  const p = OBJ_PARAM[state.objective], wrap = document.getElementById('objParamWrap');
+  if (p) { wrap.style.display = '';
+    document.getElementById('objParamLabel').textContent = p.label + ' (' + p.unit + ')';
+    document.getElementById('objParam').value = state.objParam; }
+  else wrap.style.display = 'none';
+}
+objSel.addEventListener('change', e => {
+  state.objective = e.target.value;
+  const p = OBJ_PARAM[state.objective];
+  if (p) state.objParam = parseFloat(document.getElementById('objParam').value) || p.def;
+  syncObjParam(); render(); precompute();
+});
+document.getElementById('objParam').addEventListener('input', e => { state.objParam = parseFloat(e.target.value) || 0; render(); });
+document.getElementById('objParam').addEventListener('change', () => { render(); precompute(); });
+syncObjParam();
+
+/* ---- motor power ceiling ---- */
+function syncMotorFrac() {
+  MAX_RPM = DRUM_FREE_RPM * MOTOR_USABLE_FRAC;
+  const s = motorState(MAX_RPM);
+  const el = document.getElementById('v_motorFrac');
+  if (el) el.textContent = (MOTOR_USABLE_FRAC*100).toFixed(0) + '% free (' + Math.round(MAX_RPM) + ' rpm, ' +
+    s.torque.toFixed(1) + ' N·m)';
+}
+const mf = document.getElementById('motorFrac');
+if (mf) {
+  mf.value = MOTOR_USABLE_FRAC;
+  mf.addEventListener('input', e => {
+    MOTOR_USABLE_FRAC = parseFloat(e.target.value);
+    syncMotorFrac(); render(); precompute();
+  });
+}
+syncMotorFrac();
+
+/* ================= drawing ================= */
+const traj = document.getElementById('traj'), tctx = traj.getContext('2d');
+const regionC = document.getElementById('region'), rctx = regionC.getContext('2d');
+
+function axes(ctx,W,H,pad){ ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='#2b333d'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.rect(pad.l,pad.t,W-pad.l-pad.r,H-pad.t-pad.b); ctx.stroke(); }
+
+function modelCheckHTML(shot) {
+  if (!shot) return '';
+  const v = shot.v, omega = SPINREV*shot.rpm/60, spinRatio = omega*RB/v, Cl = P.km*spinRatio;
+  const q = 0.5*RHO*AREA*v*v/P.mass;           // acceleration scale (m/s^2)
+  const aD = P.cd*q, aL = Cl*q;
+  const m = motorState(shot.rpm);
+  const over = shot.rpm > MAX_RPM + 1;
+  return `<b>drag + Magnus check @ launch</b><br>` +
+    `spin ω = ${omega.toFixed(0)} rad/s · spin ratio ωR/v = ${spinRatio.toFixed(2)} · Cl = ${Cl.toFixed(3)}<br>` +
+    `a_drag = ${aD.toFixed(1)} m/s² (${(aD/G).toFixed(2)}g) · a_Magnus = ${aL.toFixed(1)} m/s² (${(aL/G).toFixed(2)}g) · L/D = ${(aL/aD).toFixed(2)}<br>` +
+    `inputs: m=${P.mass} kg · Cd=${P.cd} · kM=${P.km} · slip=${P.slip} · ρ=${RHO} · A=${(AREA*1e4).toFixed(1)} cm²<br>` +
+    `<b>drum drive</b> — Kraken X60 ${GEAR_DRUM_PER_MOTOR.toFixed(2)}:1 overdrive<br>` +
+    `shot drum = ${Math.round(shot.rpm)} rpm → motor ${Math.round(m.motorRpm)} rpm ` +
+      `(${(m.frac*100).toFixed(0)}% of ${MOTOR_FREE_RPM} free) · torque ${m.torque.toFixed(1)} N·m · ` +
+      `power ${m.power.toFixed(0)} W (${(m.power/MOTOR_PEAK_POWER*100).toFixed(0)}% of peak)<br>` +
+    `usable ceiling ${Math.round(MAX_RPM)} rpm (${(MOTOR_USABLE_FRAC*100).toFixed(0)}% of ${DRUM_FREE_RPM} mech free)` +
+      (over ? ` · <span class="lo">shot exceeds power ceiling</span>` : '');
+}
+
+function render() {
+  const d = state.d, vr = state.vr;
+  const obj = state.objective, param = state.objParam;
+  const shot = shotAt(d, vr, obj, param);
+
+  /* ---- trajectory map: muzzle at x=0, HUB at x=d ---- */
+  const W = traj.width, H = traj.height, pad = {l:44,r:14,t:14,b:34};
+  const apex = (shot && shot.metrics && shot.metrics.apex) ? shot.metrics.apex : 2.6;
+  const xMin = -0.7, xMax = d + Math.max(0.95, HUBW/2 + 0.30);
+  const yMin = 0, yMax = Math.max(2.6, Math.min(6.5, apex*1.12));
+  const cw = W-pad.l-pad.r, ch = H-pad.t-pad.b;
+  const s = Math.min(cw/(xMax-xMin), ch/(yMax-yMin));      // px per metre — equal on both axes
+  const ox = pad.l + (cw - (xMax-xMin)*s)/2;
+  const oy = pad.t + (ch - (yMax-yMin)*s)/2;
+  const X = x => ox + (x-xMin)*s;
+  const Y = y => oy + (yMax-y)*s;
+  axes(tctx,W,H,pad);
+  tctx.fillStyle='#6f7d8d'; tctx.font='11px sans-serif';
+  for (let xm=Math.ceil(xMin); xm<=Math.floor(xMax); xm++){ tctx.fillText(xm+'m', X(xm)-8, H-14);
+    tctx.strokeStyle='#232a33'; tctx.beginPath(); tctx.moveTo(X(xm),pad.t); tctx.lineTo(X(xm),H-pad.b); tctx.stroke(); }
+  for (let ym=1; ym<=Math.floor(yMax); ym++){ tctx.fillText(ym+'m', 8, Y(ym)+4);
+    tctx.strokeStyle='#232a33'; tctx.beginPath(); tctx.moveTo(pad.l,Y(ym)); tctx.lineTo(W-pad.r,Y(ym)); tctx.stroke(); }
+
+  // ground
+  tctx.strokeStyle='#3a444f'; tctx.beginPath(); tctx.moveTo(pad.l,Y(0)); tctx.lineTo(W-pad.r,Y(0)); tctx.stroke();
+
+  // ---- HUB: 47in body (0..72in) + sketched funnel trapezoid + 41.7in opening ----
+  const hx = d;
+  const boxL = X(hx-HUBW/2), boxR = X(hx+HUBW/2);
+  tctx.fillStyle='#26303a'; tctx.fillRect(boxL, Y(YT), boxR-boxL, Y(0)-Y(YT));
+  tctx.strokeStyle='#3a444f'; tctx.strokeRect(boxL, Y(YT), boxR-boxL, Y(0)-Y(YT));
+  const opL = X(hx-OPEN/2), opR = X(hx+OPEN/2);
+  const thrL = X(hx-OPEN/2*FUNNEL_THROAT), thrR = X(hx+OPEN/2*FUNNEL_THROAT);
+  tctx.fillStyle='#2f3b47'; tctx.beginPath();                 // funnel below the opening, narrowing into the hub
+  tctx.moveTo(opL, Y(YT)); tctx.lineTo(opR, Y(YT));
+  tctx.lineTo(thrR, Y(YT-FUNNEL_H)); tctx.lineTo(thrL, Y(YT-FUNNEL_H));
+  tctx.closePath(); tctx.fill();
+  tctx.strokeStyle='#6f7d8d'; tctx.lineWidth=1; tctx.beginPath();
+  tctx.moveTo(opL,Y(YT)); tctx.lineTo(thrL,Y(YT-FUNNEL_H));
+  tctx.moveTo(opR,Y(YT)); tctx.lineTo(thrR,Y(YT-FUNNEL_H)); tctx.stroke();
+  tctx.strokeStyle='#8fa3b8'; tctx.lineWidth=2; tctx.beginPath();
+  tctx.moveTo(opL,Y(YT)); tctx.lineTo(opR,Y(YT)); tctx.stroke(); tctx.lineWidth=1;
+  tctx.fillStyle='#9fb0c4'; tctx.font='10px sans-serif';
+  tctx.fillText('HUB 47in', boxL, Y(0)-5);
+  tctx.fillText('opening 41.7in @ 72in', opR+4, Y(YT)+3);
+  tctx.fillText('funnel', thrL-34, Y(YT-FUNNEL_H)+3);
+
+  // robot body footprint (muzzle at x=0; front 10in ahead, rear 20in behind)
+  tctx.fillStyle='rgba(120,150,180,0.16)';
+  tctx.fillRect(X(-ROBOT_BACK), Y(ROBOT_H), X(ROBOT_FWD)-X(-ROBOT_BACK), Y(0)-Y(ROBOT_H));
+  tctx.strokeStyle='#55637a'; tctx.setLineDash([3,3]); tctx.lineWidth=1;
+  tctx.strokeRect(X(-ROBOT_BACK), Y(ROBOT_H), X(ROBOT_FWD)-X(-ROBOT_BACK), Y(0)-Y(ROBOT_H));
+  tctx.setLineDash([]);
+  tctx.fillStyle='#7f8ea3'; tctx.font='10px sans-serif';
+  tctx.fillText('robot', X(-ROBOT_BACK)+3, Y(ROBOT_H)-3);
+
+  // muzzle marker at x = 0
+  tctx.strokeStyle='#5aa9ff'; tctx.lineWidth=2; tctx.beginPath();
+  tctx.moveTo(X(0), Y(0)); tctx.lineTo(X(0), Y(Y0)); tctx.stroke(); tctx.lineWidth=1;
+  tctx.fillStyle='#5aa9ff'; tctx.beginPath(); tctx.arc(X(0), Y(Y0), 3, 0, 7); tctx.fill();
+  tctx.fillText(`muzzle ${Y0.toFixed(2)}m`, X(0)+4, Y(Y0)-4);
+
+  function drawPath(path, color, width, alpha) {
+    tctx.globalAlpha = alpha||1; tctx.strokeStyle=color; tctx.lineWidth=width||1;
+    tctx.beginPath();
+    for (let i=0;i<path.length;i++){ const [x,y]=path[i]; if(y<0)break; i?tctx.lineTo(X(x),Y(y)):tctx.moveTo(X(x),Y(y)); }
+    tctx.stroke(); tctx.globalAlpha=1;
+  }
+  if (shot) {
+    for (const r of shot.reg) {
+      if (r.th % 2) continue;
+      const a = sim(r.th, r.vLo, vr); if (a) drawPath(a.path, '#ff6b6b', 1, 0.5);
+      const b = sim(r.th, r.vHi, vr); if (b) drawPath(b.path, '#4fd67a', 1, 0.5);
+    }
+    const o = sim(shot.th, shot.v, vr); if (o) drawPath(o.path, '#5aa9ff', 3, 1);
+    tctx.fillStyle='#ffd166'; tctx.beginPath(); tctx.arc(X(d),Y(YT),4,0,7); tctx.fill();
+  }
+
+  /* ---- valid region ---- */
+  const RW = regionC.width, RH = regionC.height, rp = {l:52,r:14,t:14,b:40};
+  axes(rctx,RW,RH,rp);
+  rctx.fillStyle='#9fb0c4'; rctx.font='12px sans-serif';
+  rctx.fillText('Launch angle (deg)', RW/2-48, RH-8);
+  rctx.save(); rctx.translate(14, RH/2+40); rctx.rotate(-Math.PI/2); rctx.fillText('Launch speed (m/s)',0,0); rctx.restore();
+  if (shot) {
+    const reg = shot.reg;
+    const thMin = Math.min(...reg.map(r=>r.th)), thMax = Math.max(...reg.map(r=>r.th));
+    let vMin = Math.min(...reg.map(r=>r.vLo)), vMax = Math.max(...reg.map(r=>r.vHi));
+    const m = 0.4; vMin-=m; vMax+=m;
+    const RX = t => rp.l + (t-thMin)/(thMax-thMin+1e-9)*(RW-rp.l-rp.r);
+    const RY = v => RH-rp.b - (v-vMin)/(vMax-vMin)*(RH-rp.t-rp.b);
+    rctx.strokeStyle='#232a33'; rctx.fillStyle='#6f7d8d'; rctx.font='11px sans-serif';
+    for (let t=Math.ceil(thMin); t<=thMax; t+=10){ rctx.beginPath(); rctx.moveTo(RX(t),rp.t); rctx.lineTo(RX(t),RH-rp.b); rctx.stroke(); rctx.fillText(t, RX(t)-6, RH-24); }
+    for (let v=Math.ceil(vMin); v<=vMax; v+=1){ rctx.beginPath(); rctx.moveTo(rp.l,RY(v)); rctx.lineTo(RW-rp.r,RY(v)); rctx.stroke(); rctx.fillText(v, 26, RY(v)+4); }
+    // hood travel limits (launch 78deg = hood 0 .. 50.5deg = hood 27.5)
+    rctx.strokeStyle='#ffd166'; rctx.setLineDash([4,4]);
+    for (const t of [LAUNCH_ZERO, LAUNCH_ZERO-HOOD_MAX]) if (t>=thMin && t<=thMax){
+      rctx.beginPath(); rctx.moveTo(RX(t),rp.t); rctx.lineTo(RX(t),RH-rp.b); rctx.stroke();
+    }
+    rctx.setLineDash([]);
+    rctx.beginPath(); rctx.moveTo(RX(reg[0].th), RY(reg[0].vHi));
+    for (const r of reg) rctx.lineTo(RX(r.th), RY(r.vHi));
+    for (let i=reg.length-1;i>=0;i--) rctx.lineTo(RX(reg[i].th), RY(reg[i].vLo));
+    rctx.closePath(); rctx.fillStyle='rgba(90,169,255,0.10)'; rctx.fill();
+    rctx.strokeStyle='#4fd67a'; rctx.lineWidth=2; rctx.beginPath();
+    reg.forEach((r,i)=> i?rctx.lineTo(RX(r.th),RY(r.vHi)):rctx.moveTo(RX(r.th),RY(r.vHi))); rctx.stroke();
+    rctx.strokeStyle='#ff6b6b'; rctx.beginPath();
+    reg.forEach((r,i)=> i?rctx.lineTo(RX(r.th),RY(r.vLo)):rctx.moveTo(RX(r.th),RY(r.vLo))); rctx.stroke();
+    rctx.lineWidth=1;
+    rctx.fillStyle='#ffd166'; rctx.beginPath(); rctx.arc(RX(shot.th),RY(shot.v),5,0,7); rctx.fill();
+
+    /* readout */
+    const oName = (OBJECTIVES.find(o=>o[0]===obj)||['','?'])[1];
+    const mt = shot.metrics || {};
+    document.getElementById('readout').innerHTML =
+      `<b>${oName}</b><br>` +
+      `shot: <b class="opt">${shot.th.toFixed(1)}° @ ${shot.v.toFixed(2)} m/s</b><br>` +
+      `hood = 78 − angle = <b>${shot.hood.toFixed(1)}°</b>  ·  drum = <b>${r50(shot.rpm)} rpm</b><br>` +
+      `speed tol <b>±${shot.vTol.toFixed(2)} m/s</b> · angle tol −${shot.aLo.toFixed(1)}/+${shot.aHi.toFixed(1)}°<br>` +
+      `apex <b>${mt.apex!=null?mt.apex.toFixed(2):'—'} m</b> · tof <b>${mt.tof!=null?mt.tof.toFixed(2):'—'} s</b> · descent <b>${mt.desc!=null?mt.desc.toFixed(1):'—'}°</b><br>` +
+      `hood range −${(LAUNCH_ZERO-78).toFixed(1)}…+${(LAUNCH_ZERO-50.5).toFixed(1)}° (launch ${LAUNCH_ZERO}…${LAUNCH_ZERO-HOOD_MAX}°)`;
+    document.getElementById('modelCheck').innerHTML = modelCheckHTML(shot);
+  } else {
+    document.getElementById('readout').innerHTML = '<span class="lo">no valid shot</span>';
+    document.getElementById('modelCheck').innerHTML = '';
+  }
+}
+
+
+/* ================= precomputed tables ================= */
+const r50 = v => Math.round(v/50)*50;       // round rpm to the nearest 50
+function buildTable() {
+  const dists = [0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0];
+  let rows = '<tr><th>dist</th><th>angle</th><th>hood</th><th>rpm</th></tr>';
+  const hoodPts = [], rpmPts = [];
+  for (const d of dists) {
+    const s = shotAt(d, 0, state.objective, state.objParam);
+    if (s) {
+      const h = Math.max(0, Math.min(HOOD_MAX, s.hood));
+      const r = Math.min(MAX_RPM, r50(s.rpm));
+      rows += `<tr><td>${d.toFixed(1)}</td><td>${s.th.toFixed(1)}</td><td>${h.toFixed(1)}</td><td>${r}</td></tr>`;
+      hoodPts.push(`            {${d.toFixed(1)}, ${h.toFixed(1)}},`);
+      rpmPts.push(`            {${d.toFixed(1)}, ${r.toFixed(1)}},`);
+    } else {
+      rows += `<tr><td>${d.toFixed(1)}</td><td>—</td><td>—</td><td>—</td></tr>`;
+    }
+  }
+  document.getElementById('tblNew').innerHTML = rows;
+  const old = [[0.5,0,2500],[1.0,0,2707],[1.5,0,3100],[2.0,8.4,3300],[2.5,19,3600],[3.0,25,3600]];
+  let ro = '<tr><th>dist</th><th>hood</th><th>rpm</th></tr>';
+  for (const r of old) ro += `<tr><td>${r[0].toFixed(1)}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`;
+  document.getElementById('tblOld').innerHTML = ro;
+
+  const jout = document.getElementById('javaOut');
+  if (jout) jout.value =
+    `public static final double[][] kDistanceToHoodDeg = {\n${hoodPts.join('\n')}\n};\n\n` +
+    `public static final double[][] kDistanceToRPM = {\n${rpmPts.join('\n')}\n};`;
+}
+
+/* ================= GPU acceleration (WebGL2) ================= *
+ * Integrate the flight ODE for every (launch angle, launch speed, radial
+ * velocity) on the GPU in one pass, read the descending-crossing distances
+ * back once, and serve every later query from that grid by interpolation.
+ * Falls back to the CPU integrator when float render targets are missing. */
+let gpuCanvas=null, gl=null, gpuProg=null, gpuVBO=null, gpuFBO=null, gpuU={};
+
+const VS_SRC = `#version 300 es
+layout(location=0) in vec2 aPos;
+void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }`;
+
+function FS_SRC() { return `#version 300 es
+precision highp float;
+precision highp int;
+layout(location=0) out vec4 outColor;
+uniform float uMass, uCd, uKm, uSlip;
+const int   NTH=${GRID.NTH}, NVR=${GRID.VR_N}, NV=${GRID.NV};
+const float TH_MIN=${GRID.TH_MIN.toFixed(6)}, TH_STEP=${GRID.TH_STEP.toFixed(6)};
+const float V_MIN=${GRID.V_MIN.toFixed(6)},  V_STEP=${GRID.V_STEP.toFixed(8)};
+const float VR_MIN=${GRID.VR_MIN.toFixed(6)},VR_STEP=${GRID.VR_STEP.toFixed(8)};
+const float XMAX=${GRID.X_MAX.toFixed(4)}, DT=${GRID.DT.toFixed(6)};
+const float RHO=1.225, GRAV=9.81;
+const float RB=${RB.toFixed(9)}, AREA=${AREA.toFixed(9)};
+const float SPINREV=${SPINREV.toFixed(9)}, EXITREV=${EXITREV.toFixed(9)};
+const float Y0=${Y0.toFixed(6)}, YT=${YT.toFixed(6)};
+void main(){
+  int vIdx  = int(gl_FragCoord.x);
+  int h     = int(gl_FragCoord.y);
+  int thIdx = h - (h/NTH)*NTH;
+  int vrIdx = h / NTH;
+  float theta = TH_MIN + float(thIdx)*TH_STEP;
+  float v     = V_MIN  + float(vIdx)*V_STEP;
+  float vr    = VR_MIN + float(vrIdx)*VR_STEP;
+  float th = radians(theta);
+  float rpm = v*60.0/(EXITREV*uSlip);
+  float omega = SPINREV*rpm/60.0;
+  float Cl = uKm*(omega*RB/max(v,1e-6));
+  vec2 pos = vec2(0.0, Y0);
+  vec2 vel = vec2(v*cos(th)+vr, v*sin(th));
+  float xc = -2.0, code = 1.0, xh = -1.0;    // code: 0 ok, 1 short, 2 beyond XMAX; xh = crossing of YT+RB
+  float YH = YT + RB;
+  for (int i=0;i<${GRID.MAXSTEPS};i++){
+    float sp = length(vel); vec2 u = vel/max(sp,1e-9);
+    float q = 0.5*RHO*AREA*sp*sp/uMass;
+    float dg = uCd*q, lf = Cl*q;
+    vec2 a1 = vec2(-dg*u.x + lf*(-u.y), -GRAV - dg*u.y + lf*u.x);
+    vec2 vmid = vel + 0.5*DT*a1;
+    vec2 pnew = pos + DT*vmid;
+    float sp2 = length(vmid); vec2 u2 = vmid/max(sp2,1e-9);
+    float q2 = 0.5*RHO*AREA*sp2*sp2/uMass;
+    float dg2 = uCd*q2, lf2 = Cl*q2;
+    vec2 a2 = vec2(-dg2*u2.x + lf2*(-u2.y), -GRAV - dg2*u2.y + lf2*u2.x);
+    vec2 vnew = vel + DT*a2;
+    if (pos.y >= YH && pnew.y < YH) xh = pos.x;
+    if (pos.y >= YT && pnew.y < YT){ xc = pos.x; code = 0.0; break; }
+    pos = pnew; vel = vnew;
+    if (pos.y < -1.0){ xc = -2.0; code = 1.0; break; }
+    if (pos.x > XMAX){ xc = 999.0; code = 2.0; break; }
+  }
+  outColor = vec4(xc, code, xh, 1.0);
+}`; }
+
+function gpuInit() {
+  try {
+    gpuCanvas = document.createElement('canvas');
+    gpuCanvas.width = GRID.NV; gpuCanvas.height = GRID.NTH*GRID.VR_N;
+    const g = gpuCanvas.getContext('webgl2', { antialias:false, preserveDrawingBuffer:true });
+    if (!g) { GPU.note='no webgl2'; return false; }
+    if (!g.getExtension('EXT_color_buffer_float')) { GPU.note='no float RT'; return false; }
+    const mt = g.getParameter(g.MAX_TEXTURE_SIZE);
+    if (gpuCanvas.width > mt || gpuCanvas.height > mt) { GPU.note='grid too big'; return false; }
+    const mk = (type, src) => { const s=g.createShader(type); g.shaderSource(s,src); g.compileShader(s);
+      if (!g.getShaderParameter(s, g.COMPILE_STATUS)) throw new Error(g.getShaderInfoLog(s)); return s; };
+    const p = g.createProgram();
+    g.attachShader(p, mk(g.VERTEX_SHADER, VS_SRC));
+    g.attachShader(p, mk(g.FRAGMENT_SHADER, FS_SRC()));
+    g.linkProgram(p);
+    if (!g.getProgramParameter(p, g.LINK_STATUS)) throw new Error(g.getProgramInfoLog(p));
+    gl = g; gpuProg = p;
+    for (const n of ['uMass','uCd','uKm','uSlip']) gpuU[n] = g.getUniformLocation(p, n);
+    gpuVBO = g.createBuffer();
+    g.bindBuffer(g.ARRAY_BUFFER, gpuVBO);
+    g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), g.STATIC_DRAW);
+    const tex = g.createTexture();
+    g.bindTexture(g.TEXTURE_2D, tex);
+    g.texImage2D(g.TEXTURE_2D, 0, g.RGBA32F, gpuCanvas.width, gpuCanvas.height, 0, g.RGBA, g.FLOAT, null);
+    g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MIN_FILTER, g.NEAREST);
+    g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MAG_FILTER, g.NEAREST);
+    gpuFBO = g.createFramebuffer();
+    g.bindFramebuffer(g.FRAMEBUFFER, gpuFBO);
+    g.framebufferTexture2D(g.FRAMEBUFFER, g.COLOR_ATTACHMENT0, g.TEXTURE_2D, tex, 0);
+    if (g.checkFramebufferStatus(g.FRAMEBUFFER) !== g.FRAMEBUFFER_COMPLETE) throw new Error('FBO incomplete');
+    return true;
+  } catch (e) { GPU.note = 'err: ' + (e && e.message ? e.message : e); return false; }
+}
+
+function buildLUT() {
+  const g = gl, W = gpuCanvas.width, H = gpuCanvas.height;
+  g.bindFramebuffer(g.FRAMEBUFFER, gpuFBO);
+  g.viewport(0, 0, W, H);
+  g.useProgram(gpuProg);
+  g.uniform1f(gpuU.uMass, P.mass); g.uniform1f(gpuU.uCd, P.cd);
+  g.uniform1f(gpuU.uKm, P.km);     g.uniform1f(gpuU.uSlip, P.slip);
+  g.bindBuffer(g.ARRAY_BUFFER, gpuVBO);
+  g.enableVertexAttribArray(0);
+  g.vertexAttribPointer(0, 2, g.FLOAT, false, 0, 0);
+  g.drawArrays(g.TRIANGLES, 0, 6);
+  const buf = new Float32Array(W*H*4);
+  g.readPixels(0, 0, W, H, g.RGBA, g.FLOAT, buf);
+  XC = new Float32Array(GRID.NV*GRID.NTH*GRID.VR_N);
+  XCH = new Float32Array(GRID.NV*GRID.NTH*GRID.VR_N);
+  for (let h=0; h<H; h++) {
+    const th = h % GRID.NTH, vr = (h / GRID.NTH) | 0;
+    for (let v=0; v<W; v++) {
+      const i = ((vr*GRID.NTH+th)*GRID.NV)+v;
+      XC[i] = buf[(h*W+v)*4];
+      XCH[i] = buf[(h*W+v)*4+2];
+    }
+  }
+}
+
+// trilinear sample of a crossing-distance-like grid (v dominates; th/vr are smooth)
+function samp(arr, theta, v, vr) {
+  const ti = (theta-GRID.TH_MIN)/GRID.TH_STEP, t0 = Math.max(0,Math.min(GRID.NTH-1,Math.floor(ti))), t1 = Math.min(GRID.NTH-1,t0+1), ft = ti-t0;
+  const ri = (vr-GRID.VR_MIN)/GRID.VR_STEP,    r0 = Math.max(0,Math.min(GRID.VR_N-1,Math.floor(ri))), r1 = Math.min(GRID.VR_N-1,r0+1), fr = ri-r0;
+  const si = (v-GRID.V_MIN)/GRID.V_STEP,       s0 = Math.max(0,Math.min(GRID.NV-1,Math.floor(si))),   s1 = Math.min(GRID.NV-1,s0+1),   fs = si-s0;
+  const g = (t,r,s) => arr[((r*GRID.NTH+t)*GRID.NV)+s];
+  const q00=g(t0,r0,s0), q01=g(t0,r0,s1), q10=g(t0,r1,s0), q11=g(t0,r1,s1);
+  const w00=g(t1,r0,s0), w01=g(t1,r0,s1), w10=g(t1,r1,s0), w11=g(t1,r1,s1);
+  const lo = (q00+(q01-q00)*fs) + ((q10+(q11-q10)*fs)-(q00+(q01-q00)*fs))*fr;
+  const hi = (w00+(w01-w00)*fs) + ((w10+(w11-w10)*fs)-(w00+(w01-w00)*fs))*fr;
+  return lo + (hi-lo)*ft;
+}
+function xLat(theta, v, vr) { return samp(XC, theta, v, vr); }
+function hLat(theta, v, vr) { return samp(XCH, theta, v, vr); }
+
+// crossing info {x (rim plane), xhi (clearance plane YT+RB)} from LUT if present else CPU
+function crossInfo(theta, v, vr) {
+  if (GPU.ok && XC) return { x: xLat(theta,v,vr), xhi: hLat(theta,v,vr) };
+  const r = sim(theta, v, vr, GRID.X_MAX);
+  return r ? { x:r.x, xhi:r.xhi } : null;
+}
+
+// Does the ball clear the FRONT edge of the hub opening? The ball's centre must
+// cross the plane y = YT+RB at or beyond x = d-OPEN/2 (so a full radius of the
+// ball is above the rim as it passes the near edge).
+function clearFront(d, theta, v, vr) {
+  const xf = d - OPEN/2;
+  if (xf <= RB) return true;                 // near rim is at/behind the muzzle: nothing to clip
+  const ci = crossInfo(theta, v, vr);
+  return !!ci && ci.xhi >= xf;
+}
+
+function gpuValidate() {
+  let maxd = 0, maxh = 0, n = 0;
+  const tests = [[78,7.0,0],[75,6.8,0],[80,6.5,0.5],[72,7.2,-0.5],[65,7.8,0],[78,6.4,-1.5],[70,7.5,0.25]];
+  for (const [th,v,vr] of tests) {
+    const r = sim(th, v, vr);
+    if (!r || r.x < 0.5 || r.x > 6.5) continue;      // compare only inside the LUT's accurate window
+    maxd = Math.max(maxd, Math.abs(xLat(th, v, vr) - r.x));
+    maxh = Math.max(maxh, Math.abs(hLat(th, v, vr) - r.xhi)); n++;
+  }
+  console.log('[aim] GPU LUT vs CPU integrator: max rim-crossing error', maxd.toFixed(4), 'm, clearance-plane error', maxh.toFixed(4), 'm over', n, 'samples');
+  if (n === 0) { GPU.note = 'no valid samples'; GPU.ok = false; XC = null; XCH = null; return false; }
+  if (maxd > 0.15 || maxh > 0.15) { GPU.note = 'LUT mismatch ' + maxd.toFixed(3); GPU.ok = false; XC = null; XCH = null; return false; }
+  GPU.ok = true; GPU.note = 'gpu'; return true;
+}
+
+function rebuildLUT() {
+  if (!GPU.ok) return;
+  XC = null; XCH = null;
+  buildLUT();
+  gpuValidate();
+}
+
+/* ================= precomputed distance sweep ================= */
+const mapC = document.getElementById('map'), mctx = mapC.getContext('2d');
+const curveC = document.getElementById('curve'), cctx = curveC.getContext('2d');
+const COL = { steep:'#5aa9ff', rob:'#4fd67a', old:'#ff9f43', anchor:'#ffffff' };
+let sweep = null;
+
+function pickSteepest(reg) {
+  for (let i = reg.length-1; i >= 0; i--) {
+    const r = reg[i];
+    if (r.th > 78 || r.th < 50.5) continue;
+    const v = (r.vLo + r.vHi)/2, rpm = v*60/(EXITREV*P.slip);
+    if (rpm <= MAX_RPM) return { th:r.th, v, rpm, hood:78-r.th, tol:(r.vHi-r.vLo)/2, vLo:r.vLo, vHi:r.vHi };
+  }
+  return null;
+}
+
+const VRD = []; for (let d=0.5; d<=4.5+1e-9; d+=0.1) VRD.push(d);
+const VRV = []; for (let k=0;k<GRID.VR_N;k++) VRV.push(GRID.VR_MIN + k*GRID.VR_STEP);
+let vrmap = null;
+
+// how far the achieved parameter may sit from the requested one and still count
+const OBJ_TOL = { descent: 4, apex: 0.25, tof: 0.08 };
+
+// a usable shot at this distance for the current objective/params? (also enforces rpm ceiling)
+function feasibleAt(d, vr, obj, param) {
+  const reg = region(d, vr, 1.0, GPU.ok ? 30 : 22);
+  if (!reg.length) return null;
+  if (!reg.some(r => r.th <= LAUNCH_ZERO + 1e-9 && r.th >= LAUNCH_ZERO - HOOD_MAX - 1e-9)) return null;
+  const o = optimizeShot(reg, vr, obj, param);
+  if (!o) return null;
+  if (o.v * 60 / (EXITREV * P.slip) > MAX_RPM) return null;
+  const tol = OBJ_TOL[obj];
+  if (tol != null) {
+    const m = shotMetrics(o.th, o.v, vr);
+    const got = obj === 'descent' ? m.desc : obj === 'apex' ? m.apex : m.tof;
+    if (got == null || Math.abs(got - param) > tol) return null;
+  }
+  return o;
+}
+
+// longest contiguous run of distances where the current objective is achievable
+// (hood-angle + rpm limits only; robot body clearance is applied by the caller)
+function shootableRange(obj, param) {
+  const step = GPU.ok ? 0.05 : 0.1, lo = 0.3, hi = GPU.ok ? 8.0 : 6.0;
+  let best = [null, null], a = null, b = null;
+  for (let d = lo; d <= hi + 1e-9; d += step) {
+    if (feasibleAt(d, 0, obj, param)) { if (a === null) a = d; b = d; }
+    else { if (a !== null && (best[0] === null || b - a > best[1] - best[0])) best = [a, b]; a = null; }
+  }
+  if (a !== null && (best[0] === null || b - a > best[1] - best[0])) best = [a, b];
+  return best;
+}
+
+function updateRangeReadout() {
+  const el = document.getElementById('rangeCheck'); if (!el) return;
+  const name = (OBJECTIVES.find(o => o[0] === state.objective) || ['', '?'])[1];
+  const [geoLo, geoHi] = shootableRange(state.objective, state.objParam);
+  const lo = geoLo == null ? null : Math.max(geoLo, ROBOT_MIN_D);
+  const hi = geoHi;
+  const ok = lo != null && hi != null && lo <= hi;
+  const why = [];
+  if (geoLo != null) why.push(geoLo >= ROBOT_MIN_D - 1e-9
+    ? `hood/geometry floor ${geoLo.toFixed(2)} m`
+    : `robot clips HUB below ${ROBOT_MIN_D.toFixed(2)} m`);
+  if (geoHi != null) why.push(`max reach ${geoHi.toFixed(2)} m`);
+  el.innerHTML = `<b>shootable distance range</b> (${name}${OBJ_TOL[state.objective] != null ? ' @ ' + state.objParam : ''})<br>` +
+    (ok ? `<b class="hi">${lo.toFixed(2)} – ${hi.toFixed(2)} m</b>`
+        : `<span class="lo">none — no distance satisfies the current objective</span>`) +
+    (why.length ? `<br><span class="hint">${why.join(' · ')}</span>` : '');
+}
+
+function precompute() {
+  const iters = GPU.ok ? 30 : 22;
+  const dec = s => { if (s) { s.rpm = s.v*60/(EXITREV*P.slip); s.hood = 78 - s.th; s.tol = s.vTol; } return s; };
+  sweep = [];
+  for (let d = 0.5; d <= 4.6 + 1e-9; d += 0.1) {
+    const reg = region(d, 0, 1.0, iters);
+    const pick = reg.length ? dec(optimizeShot(reg, 0, state.objective, state.objParam)) : null;
+    const rob = reg.length ? dec(optimal(reg)) : null;
+    let band = 0; for (const r of reg) band = Math.max(band, r.vHi - r.vLo);
+    sweep.push({ d, reg, pick, rob, band });
+  }
+  // distance x radial-velocity grid (selected objective)
+  vrmap = null;
+  if (GPU.ok) {
+    vrmap = new Array(VRD.length * VRV.length);
+    for (let i=0;i<VRD.length;i++) for (let k=0;k<VRV.length;k++) {
+      const reg = region(VRD[i], VRV[k], 1.0, iters);
+      vrmap[i*VRV.length+k] = reg.length ? dec(optimizeShot(reg, VRV[k], state.objective, state.objParam)) : null;
+    }
+  }
+  drawMap(); drawCurve(); drawVrMap(); buildTable(); updateRangeReadout();
+  const st = document.getElementById('gpuStatus');
+  if (st) st.textContent = GPU.ok ? ('GPU: WebGL2 · ' + (GRID.NV*GRID.NTH*GRID.VR_N).toLocaleString() + ' rays')
+                                  : ('CPU fallback (' + GPU.note + ')');
+}
+
+function drawMap() {
+  const W = mapC.width, H = mapC.height, pad = { l:52, r:14, t:14, b:40 };
+  axes(mctx, W, H, pad);
+  const dMin = 0.5, dMax = 4.6, thMin = 40, thMax = 88;
+  const X = d => pad.l + (d-dMin)/(dMax-dMin)*(W-pad.l-pad.r);
+  const Y = t => pad.t + (thMax-t)/(thMax-thMin)*(H-pad.t-pad.b);
+  mctx.fillStyle = '#9fb0c4'; mctx.font = '11px sans-serif';
+  mctx.fillText('distance to hub (m)', W/2-50, H-8);
+  mctx.save(); mctx.translate(14, H/2+50); mctx.rotate(-Math.PI/2); mctx.fillText('launch angle (deg)', 0, 0); mctx.restore();
+  for (let t = 40; t <= 88; t += 5) { mctx.fillText(t, 30, Y(t)+3);
+    mctx.strokeStyle = '#232a33'; mctx.beginPath(); mctx.moveTo(pad.l, Y(t)); mctx.lineTo(W-pad.r, Y(t)); mctx.stroke(); }
+  for (let d = 1; d <= 4; d += 0.5) { mctx.fillText(d.toFixed(1), X(d)-8, H-22);
+    mctx.strokeStyle = '#232a33'; mctx.beginPath(); mctx.moveTo(X(d), pad.t); mctx.lineTo(X(d), H-pad.b); mctx.stroke(); }
+  // heatmap of the valid angle band (+ speed-tolerance colour)
+  for (const s of sweep) for (const r of s.reg) {
+    const f = Math.min(1, (r.vHi-r.vLo)/2.0);
+    mctx.fillStyle = `rgb(${Math.round(40+180*f)},${Math.round(70+120*f)},${Math.round(200-150*f)})`;
+    const xa = X(s.d-0.06), xb = X(s.d+0.06), ya = Y(r.th+0.55), yb = Y(r.th-0.55);
+    mctx.fillRect(xa, ya, Math.max(1,xb-xa), Math.max(1,yb-ya));
+  }
+  const line = (pick, color) => { mctx.strokeStyle = color; mctx.lineWidth = 2; mctx.beginPath(); let st = false;
+    for (const s of sweep) { const p = pick(s); if (!p) { st = false; continue; }
+      const x = X(s.d), y = Y(p.th); st ? mctx.lineTo(x,y) : mctx.moveTo(x,y); st = true; } mctx.stroke(); };
+  line(s => s.pick, COL.steep); line(s => s.rob, COL.rob);
+  // robot-body clearance: the muzzle cannot get closer than ROBOT_MIN_D
+  const xRob = X(ROBOT_MIN_D);
+  mctx.fillStyle = 'rgba(255,107,107,0.10)'; mctx.fillRect(pad.l, pad.t, xRob-pad.l, H-pad.t-pad.b);
+  mctx.strokeStyle = '#ff6b6b'; mctx.setLineDash([4,3]); mctx.beginPath();
+  mctx.moveTo(xRob, pad.t); mctx.lineTo(xRob, H-pad.b); mctx.stroke(); mctx.setLineDash([]);
+  mctx.fillStyle = '#ff9f9f'; mctx.font = '10px sans-serif'; mctx.fillText('robot clips HUB', pad.l+4, pad.t+12);
+  const old = [[0.5,0],[1.0,0],[1.5,0],[2.0,8.4],[2.5,19],[3.0,25]];
+  mctx.fillStyle = COL.old;
+  for (const [d,h] of old) { mctx.beginPath(); mctx.arc(X(d), Y(78-h), 3.5, 0, 7); mctx.fill(); }
+  mctx.fillStyle = COL.anchor; mctx.beginPath(); mctx.arc(X(1.5), Y(78), 5, 0, 7); mctx.fill();
+}
+
+function drawCurve() {
+  const W = curveC.width, H = curveC.height, pad = { l:46, r:56, t:14, b:40 };
+  axes(cctx, W, H, pad);
+  const dMin = 0.5, dMax = 4.6, hMax = 28, rMax = Math.max(3000, Math.ceil(MAX_RPM/1000)*1000), rStep = rMax/4;
+  const X = d => pad.l + (d-dMin)/(dMax-dMin)*(W-pad.l-pad.r);
+  const YH = h => H-pad.b - (h/hMax)*(H-pad.t-pad.b);
+  const YR = r => H-pad.b - (r/rMax)*(H-pad.t-pad.b);
+  cctx.fillStyle = '#9fb0c4'; cctx.font = '11px sans-serif';
+  cctx.fillText('distance to hub (m)', W/2-50, H-8);
+  cctx.fillText('hood°', 6, pad.t+10); cctx.fillText('rpm', W-pad.r+8, pad.t+10);
+  for (let d = 1; d <= 4; d += 0.5) { cctx.fillText(d.toFixed(1), X(d)-8, H-22);
+    cctx.strokeStyle = '#232a33'; cctx.beginPath(); cctx.moveTo(X(d), pad.t); cctx.lineTo(X(d), H-pad.b); cctx.stroke(); }
+  for (let h = 0; h <= 28; h += 7) { cctx.fillStyle = '#6f7d8d'; cctx.fillText(h, 26, YH(h)+3); }
+  for (let r = 0; r <= rMax + 1e-9; r += rStep) { cctx.fillStyle = '#6f7d8d'; cctx.fillText(Math.round(r), W-pad.r+8, YR(r)+3); }
+  const hoodLine = (pick, color) => { cctx.strokeStyle = color; cctx.lineWidth = 2; cctx.beginPath(); let st = false;
+    for (const s of sweep) { const p = pick(s); if (!p) { st = false; continue; }
+      const x = X(s.d), y = YH(Math.max(0, Math.min(hMax, p.hood))); st ? cctx.lineTo(x,y) : cctx.moveTo(x,y); st = true; } cctx.stroke(); };
+  const rpmLine = (pick, color) => { cctx.strokeStyle = color; cctx.lineWidth = 2; cctx.setLineDash([5,4]); cctx.beginPath(); let st = false;
+    for (const s of sweep) { const p = pick(s); if (!p) { st = false; continue; }
+      const x = X(s.d), y = YR(Math.min(rMax, p.rpm)); st ? cctx.lineTo(x,y) : cctx.moveTo(x,y); st = true; } cctx.stroke(); cctx.setLineDash([]); };
+  hoodLine(s => s.pick, COL.steep); rpmLine(s => s.pick, COL.steep);
+  hoodLine(s => s.rob, COL.rob);   rpmLine(s => s.rob, COL.rob);
+  const oName = (OBJECTIVES.find(o=>o[0]===state.objective)||['','objective'])[1];
+  cctx.fillStyle = COL.steep; cctx.fillText(oName, pad.l+8, pad.t+12);
+  cctx.fillStyle = COL.rob;   cctx.fillText('most-robust', pad.l+8, pad.t+26);
+  cctx.fillStyle = '#9fb0c4'; cctx.fillText('solid = hood   dashed = rpm', pad.l+8, pad.t+40);
+}
+
+function heat(f) { f = Math.max(0, Math.min(1, f)); return `hsl(${Math.round(240-240*f)},72%,55%)`; }
+
+function drawVrMap() {
+  const c = document.getElementById('vrmap'); if (!c) return;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height, pad = { l:56, r:14, t:14, b:42 };
+  axes(ctx, W, H, pad);
+  ctx.fillStyle = '#9fb0c4'; ctx.font = '11px sans-serif';
+  ctx.fillText('distance to hub (m)', W/2-50, H-8);
+  ctx.save(); ctx.translate(14, H/2+70); ctx.rotate(-Math.PI/2); ctx.fillText('radial velocity (m/s, + toward hub)', 0, 0); ctx.restore();
+  if (!vrmap) { ctx.fillStyle = '#6f7d8d'; ctx.fillText('radial-velocity map needs WebGL2 float render targets (CPU fallback active)', pad.l+16, pad.t+30); return; }
+  const metric = document.getElementById('vrMetric').value;
+  const nd = VRD.length, nv = VRV.length;
+  const cw = (W-pad.l-pad.r)/nd, ch = (H-pad.t-pad.b)/nv;
+  const M = {
+    hood:{ label:'hood angle (deg)', min:0, max:HOOD_MAX, get:s=>s.hood, fmt:v=>v.toFixed(1)+'\u00b0' },
+    rpm: { label:'drum rpm', min:1000, max:MAX_RPM, get:s=>s.rpm, fmt:v=>Math.round(v)+'' },
+    tol: { label:'speed tolerance', min:0, max:1.6, get:s=>s.tol, fmt:v=>'\u00b1'+v.toFixed(2) },
+  }[metric];
+  for (let i=0;i<nd;i++) for (let k=0;k<nv;k++) {
+    const s = vrmap[i*nv+k];
+    const x = pad.l + i*cw, y = H-pad.b - (k+1)*ch;
+    ctx.fillStyle = s ? heat((M.get(s)-M.min)/(M.max-M.min)) : '#181c22';
+    ctx.fillRect(x, y, Math.ceil(cw), Math.ceil(ch));
+  }
+  // gridlines + labels
+  ctx.strokeStyle = '#333c47'; ctx.fillStyle = '#6f7d8d'; ctx.font = '10px sans-serif';
+  for (let d=1; d<=4; d+=1) { const i=(d-0.5)/0.1, x=pad.l+i*cw;
+    ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,H-pad.b); ctx.stroke();
+    ctx.fillStyle='#9fb0c4'; ctx.fillText(d.toFixed(0), x-4, H-24); ctx.fillStyle='#6f7d8d'; }
+  for (let k=0;k<nv;k++) { const vr=VRV[k], y=H-pad.b-(k+0.5)*ch;
+    if (k%2===0) ctx.fillText(vr.toFixed(1), 22, y+3);
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke(); }
+  // current operating point
+  const ci=(state.d-0.5)/0.1, ck=(state.vr-GRID.VR_MIN)/GRID.VR_STEP;
+  ctx.strokeStyle='#ffffff'; ctx.lineWidth=2; ctx.strokeRect(pad.l+ci*cw, H-pad.b-(ck+1)*ch, cw, ch); ctx.lineWidth=1;
+  ctx.fillStyle='#d7dde5'; ctx.fillText(`colour = ${M.label||metric} (${M.fmt(M.min)} \u2026 ${M.fmt(M.max)})`, pad.l+8, pad.t+14);
+}
+
+
+const HINT = 'shaded band = valid launch angles per distance · colour = speed tolerance (blue=wide) · solid = hood · dashed = rpm';
+document.getElementById('recompute').addEventListener('click', () => {
+  const el = document.getElementById('mapHint'); el.textContent = 'computing…';
+  setTimeout(() => {
+    rebuildLUT();
+    precompute();
+    el.textContent = HINT;
+  }, 20);
+});
+document.getElementById('vrMetric').addEventListener('change', drawVrMap);
+document.getElementById('copyJava').addEventListener('click', () => {
+  const ta = document.getElementById('javaOut'), note = document.getElementById('copyNote');
+  ta.focus(); ta.select();
+  const done = () => { note.textContent = 'copied'; setTimeout(() => { note.textContent = ''; }, 1500); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(done, () => { try { document.execCommand('copy'); } catch(e){} done(); });
+  } else { try { document.execCommand('copy'); } catch(e){} done(); }
+});
+
+(function init() {
+  GPU.ok = gpuInit();
+  if (GPU.ok) { buildLUT(); gpuValidate(); }
+  if (!GPU.ok) { XC = null; XCH = null; }
+  if (gpuCanvas) gpuCanvas.style.display = 'none';
+  render();
+  precompute();
+  console.log('[aim] physics backend:', GPU.ok ? 'WebGL2 LUT' : ('CPU (' + GPU.note + ')'));
+})();
+
+</script>
+</body>
+</html>

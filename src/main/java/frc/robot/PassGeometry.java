@@ -19,9 +19,16 @@ public final class PassGeometry {
         return redAlliance ? FieldConstants.kPassTargetRed : FieldConstants.kPassTargetBlue;
     }
 
-    /** The alliance's scoring hub. */
+    /**
+     * The alliance's scoring hub, with the aim offset applied: 6in from the
+     * hub center toward the middle of the field (the near face).
+     */
     public static Translation2d hub(boolean redAlliance) {
-        return redAlliance ? FieldConstants.kHubRed : FieldConstants.kHubBlue;
+        Translation2d base = redAlliance ? FieldConstants.kHubRed : FieldConstants.kHubBlue;
+        double shift = redAlliance
+            ? -Constants.Aim.kHubAimOffset
+            : Constants.Aim.kHubAimOffset;
+        return new Translation2d(base.getX() + shift, base.getY());
     }
 
     /**

@@ -22,6 +22,7 @@ public class Hood extends SubsystemBase {
 
     private double m_targetDegrees = 0.0;
     private boolean m_holding = false;
+    private boolean m_hasTarget = false;
     private double m_lastPct = 0.0;
     private double m_smoothRot = 0.0;
     // Boot-relative datum: captured lazily from the first reading. The robot
@@ -53,7 +54,7 @@ public class Hood extends SubsystemBase {
             .withKG(Constants.Hood.kHoodKG)
             .withGravityType(com.ctre.phoenix6.signals.GravityTypeValue.Elevator_Static)
             .withStaticFeedforwardSign(
-                com.ctre.phoenix6.signals.StaticFeedforwardSignValue.UseClosedLoopSign));
+                com.ctre.phoenix6.signals.StaticFeedforwardSignValue.UseVelocitySign));
         // Physics cap: motor tops ~100 rot/s ÷ 29.6 ≈ 3.4 mech rot/s.
         // Demanding cruise 10 saturated the output permanently (bang-bang
         // stutter + crawl). A trackable profile is faster in practice.
@@ -78,11 +79,22 @@ public class Hood extends SubsystemBase {
      * bus. Target = boot datum + delta; clamped centrally.
      */
     public void setHoodDegrees(double degrees) {
+        if (!Constants.Enabled.kHood) {
+            m_motor.set(0.0);
+            return;
+        }
         ensureHomed();
         degrees = Math.max(0.0, Math.min(Constants.Hood.kHoodTravelDegrees, degrees));
+        // Skip sub-deadband target changes: auto-aim recomputes every loop
+        // and pose noise would otherwise re-seed MotionMagic continuously.
+        if (m_hasTarget
+            && Math.abs(degrees - m_targetDegrees) < Constants.Hood.kHoodTargetDeadbandDeg) {
+            return;
+        }
         m_targetDegrees = degrees;
+        m_hasTarget = true;
         m_motor.setControl(new MotionMagicVoltage(
-            Rotations.of(m_zeroRot + degrees / 360.0)));
+            Rotations.of(m_zeroRot + degrees / Constants.Hood.kHoodDegreesPerRotation)));
     }
 
     /** Re-capture the current pose as delta zero (no power cycle needed). */
@@ -92,6 +104,7 @@ public class Hood extends SubsystemBase {
             m_smoothRot = 0.0;
             m_targetDegrees = 0.0;
             m_holding = false;
+            m_hasTarget = false;
             m_lastPct = 0.0;
             m_homed = true;
         });
@@ -106,7 +119,25 @@ public class Hood extends SubsystemBase {
         }
     }
 
+    /**
+     * Manual percent jog (HOLD). Capped at the travel stops: no output past
+     * 0 deg (stow) or kHoodTravelDegrees (full deploy) — a held stick can't
+     * grind the drive into the mechanical stops.
+     */
     public void setHoodPercentage(double percent) {
+        if (!Constants.Enabled.kHood) {
+            percent = 0.0;
+        } else if (percent != 0.0) {
+            double deg = getHoodDegrees();
+            if ((percent > 0.0 && deg >= Constants.Hood.kHoodTravelDegrees)
+                || (percent < 0.0 && deg <= 0.0)) {
+                percent = 0.0;
+            }
+        }
+        // Manual jog abandons the closed-loop target; make telemetry honest
+        // (TargetDeg = now) so the error readout stays meaningful.
+        m_hasTarget = false;
+        m_targetDegrees = getHoodDegrees();
         m_motor.set(percent);
     }
 
@@ -129,7 +160,7 @@ public class Hood extends SubsystemBase {
     /** Current hood angle in DELTA degrees (0 = boot/stowed pose). */
     public double getHoodDegrees() {
         ensureHomed();
-        return (m_motor.getPosition().getValueAsDouble() - m_zeroRot) * 360.0;
+        return (m_motor.getPosition().getValueAsDouble() - m_zeroRot) * Constants.Hood.kHoodDegreesPerRotation;
     }
 
     public boolean atSetpoint(double degrees, double tolerance) {

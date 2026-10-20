@@ -13,37 +13,67 @@ public final class Constants {
     /** When true, the Control Mode chooser boots into the Test control set. */
     public static final boolean kTestControlsDefaultOnBoot = false;
 
+    /**
+     * Master mechanism switches. Flip a value to false to disable that
+     * mechanism: every output request is forced to zero, so its bindings,
+     * commands, and auto named commands become no-ops. The subsystem is still
+     * constructed (safe to leave wired); use this when a mechanism is broken,
+     * missing, or being worked on.
+     */
+    public static final class Enabled {
+        public static final boolean kIntake = true;
+        public static final boolean kHopper = true;
+        public static final boolean kShooter = true;
+        public static final boolean kHood = true;
+        public static final boolean kLED = true;
+    }
+
     public static final class Intake {
         public static final double kPivotGearboxReduction = (5.0 * 3.0 * 3.0); // 45
         public static final double kPivotChainReduction = (36.0 / 12.0);
         public static final double kPivotTotalReduction = kPivotGearboxReduction * kPivotChainReduction;
 
         public static final double kRollerDiameter = Units.inchesToMeters(1.125);
-        public static final double kRollerCircumference = kRollerDiameter * Math.PI;
-        public static final double kRollerMaxRPS = 60.0;
 
-        // BOOT-RELATIVE frame: the robot must boot with the pivot stowed.
-        // At boot the current sensor reading is captured as zero and every
-        // target is a delta from there — immune to magnet moves, remounts,
-        // and wrap. Stow = 0, deploy = +0.96 (0.95 measured span + margin).
-        public static final double kPivotStowedDelta = -0.02;
-        public static final double kPivotDeployedDelta = 0.94;
-        // Code-enforced window upper bound. Derived from the deploy delta so
-        // the deploy target is always reachable (a hardcoded window smaller
-        // than the delta would silently clamp deploy short).
-        public static final double kPivotTravelRot = kPivotDeployedDelta;
+        // ABSOLUTE frame: the CANcoder rides the pivot output (1:1), so its
+        // calibrated absolute position IS the pivot coordinate. No boot
+        // capture / homing. Ends are the MEASURED physical stops; set
+        // kPivotEncoderOffset so stowed reads kPivotStowedRot.
+        public static final double kPivotStowedRot = -0.48;   // absolute output rotations (measured)
+        public static final double kPivotDeployedRot = 0.445; // absolute output rotations (measured)
+        // Code-enforced window (measured stow -> deploy span ~0.925 rot).
+        public static final double kPivotTravelRot = kPivotDeployedRot - kPivotStowedRot;
+
+        // Stall-home: when the pivot sits within kPivotHomeTolRot of an end and
+        // the motor has been stalled (|stator current| >= kPivotHomeCurrentA)
+        // for kPivotHomeTimeS, a VIRTUAL trim is nudged so that end reads its
+        // exact constant. The CANcoder magnet offset is untouched; the trim is
+        // stored in WPILib Preferences so it persists across power cycles.
+        public static final boolean kPivotHomeEnabled = true;
+        public static final double kPivotHomeTolRot = 0.05;
+        public static final double kPivotHomeCurrentA = 25.0;
+        public static final double kPivotHomeTimeS = 0.15;
+
+        // Boot homing: on the first enable, drive the pivot to the NEARER end
+        // and home there. Duty used to press into the stop, and the give-up
+        // timeout if no stall is seen (reversed sensor, jam, etc).
+        public static final boolean kPivotHomeOnBoot = true;
+        public static final double kPivotHomeDrivePct = 0.15;
+        public static final double kPivotHomeTimeoutS = 3.0;
+        // Preferences key holding the persistent virtual home trim (rotations).
+        public static final String kPivotHomeOffsetKey = "Intake/PivotHomeOffsetRot";
         public static final boolean kPivotInverted = false;
         public static final boolean kRollerInverted = false;
 
-        public static final double kPivotKP = 12.0;
+        public static final double kPivotKP = 20.0;
         public static final double kPivotKI = 0.0;
         public static final double kPivotKD = 0.0;
         public static final double kPivotKS = 0.05;
 
-        public static final double kRollerSupplyLimit = 40.0;
-        public static final double kRollerStatorLimit = 30.0;
-        // Closed-loop roller velocity, flat 20 RPS everywhere.
-        public static final double kRollerBaseRPS = 20.0;
+        public static final double kRollerSupplyLimit = 60.0;
+        public static final double kRollerStatorLimit = 40.0;
+        // Closed-loop roller velocity, flat 25 RPS everywhere (was 20).
+        public static final double kRollerBaseRPS = 25.0;
         public static final double kRollerKP = 0.3;
         public static final double kRollerKI = 0.0;
         public static final double kRollerKD = 0.0;
@@ -51,16 +81,15 @@ public final class Constants {
         public static final double kRollerKA = 0.0;
         public static final double kPivotSupplyLimit = 40.0;
         public static final double kPivotStatorLimit = 60.0;
-        public static final double kPivotVoltageComp = 12.0;
 
         // Talon soft limits off: the frame is boot-relative (captured at
         // construction), so magnet-frame Talon limits are meaningless.
         // Limits are enforced in code against the delta instead.
-        public static final double kPivotForwardSoftLimitRot = 0.0;
-        public static final double kPivotReverseSoftLimitRot = 0.0;
 
         // Bench-calibrated magnet offset (output rotations). 0.0 = uncalibrated.
-        // Datum: fully deployed (roller down). See calibration procedure.
+        // Set so getAbsolutePosition() reads kPivotStowedRot with the pivot
+        // physically STOWED (first-boot procedure). Required by the absolute
+        // frame: with 0.0 the reading is arbitrary and targets are unsafe.
         public static final double kPivotEncoderOffset = 0.0;
     }
 
@@ -81,35 +110,76 @@ public final class Constants {
     }
 
     public static final class Shooter {
-        // Motor rotations per drum rotation. Flipped 10/17 (was 24/15): the
-        // drum is overdriven, so the motor turns fewer times than the drum.
-        public static final double kDrumGearReduction = 15.0 / 24.0;
+        // Motor rotations per drum rotation. 10/19: now 24:24 (1:1) — the drum
+        // is no longer overdriven; drum RPM equals motor RPM.
+        public static final double kDrumGearReduction = 24.0 / 24.0;
         public static final double kDrumDiameter = Units.inchesToMeters(3.0);
         public static final double kDrumCircumference = kDrumDiameter * Math.PI;
         // Measured 10/14 ceiling on-robot. Targets must stay under this
         // with margin or the up-to-speed gate never opens.
-        public static final double kDrumMaxRPM = 3600.0;
-        // Full-range drum spool time: 3300 RPM in 0.5 s.
-        public static final double kDrumRampRpmPerSec = 6600.0;
+        public static final double kDrumMaxRPM = 6000.0;
+        // Tuning offset (temp, 10/20): every drum setpoint is shifted by this
+        // before the velocity loop so PID can be characterized well below the
+        // 1:1 free-speed ceiling. Back to 0.0 for match play (as it is now).
+        public static final double kDrumRpmOffset = 0.0;
+        // Spool ramp, now done in HARDWARE: these two become MotionMagic
+        // acceleration/jerk on the drum leader (motor rps/s and rps/s/s).
+        // 150 rps/s^2 = the old 9000 rpm/s code ramp; jerk ~2x accel per 1678.
+        public static final double kDrumMMAccelRps2 = 150.0;
+        public static final double kDrumMMJerkRps3 = 300.0;
+        // Measured-velocity smoothing (s) so RPM noise can't chatter the
+        // at-speed gate (1678: 0.1).
+        public static final double kDrumVelocityFilterS = 0.1;
+        // Static-friction feedforward (V), 1678's real-robot 0.19. Bench-tune:
+        // raise if the drum drags a fixed RPM below target under no feed,
+        // lower if it overshoots coming up.
+        public static final double kDrumKS = 0.19;
+        // OVERRAMP (1678 trick): when the drums start from a stop, the target
+        // is commanded this much ABOVE the real setpoint and decays to 0 over
+        // kDrumOverrampTimeS, so the first fed ball can't sag through the
+        // at-speed window.
+        public static final double kDrumOverrampRpm = 300.0;
+        public static final double kDrumOverrampTimeS = 0.5;
+        // "At speed" band for the feed gate, ASYMMETRIC: the drum may run up to
+        // kDrumOverTolRpm fast, but only kDrumUnderTolRpm slow, of target.
+        public static final double kDrumOverTolRpm = 300.0;
+        public static final double kDrumUnderTolRpm = 100.0;
 
         public static final double kSpindleReduction = 24.0 / 15.0;
         public static final double kSpindleDiameter = Units.inchesToMeters(1.125);
         public static final double kSpindleCircumference = kSpindleDiameter * Math.PI;
-        public static final double kSpindleMaxRPS = 50.0;
         // Match idle trickle (doubled + flipped 10/14).
         public static final double kSpindleIdleRPS = 10.0;
 
+        // Drum drive direction: the drum only ever runs the feeding way, so
+        // this is the ONE place the sign lives. Every RPM setpoint in the code
+        // is a POSITIVE magnitude, applied here by Shooter.setDrumRpm().
+        public static final double kDrumDriveSign = -1.0;
+
+        // Drum velocity loop. KV is the bulk of the feedforward. It is a MOTOR
+        // constant, so it must match the Kraken X60 free speed regardless of the
+        // drum gearing: 12 V / (5800 rpm / 60) = 0.1241 V per motor rps.
+        // (It was 0.17 = a 4235 rpm motor. At 1:1 that saturates the
+        // feedforward around 4200 drum rpm, so the loop railed and could not
+        // regulate above it — the "4000 and sag" behavior.)
+        // 2910-style velocity loop: the feedforward (KV) does the work, so KP
+        // only trims. KP 2.0 with a 1:1 drum was a ±500 RPM limit cycle
+        // (visible on Shooter/DrumErrorRPM); 0.35-0.4 is the working range.
         public static final double kDrumKP = 0.4;
         public static final double kDrumKI = 0.0;
         public static final double kDrumKD = 0.0;
-        public static final double kDrumKV = 0.124;
+        public static final double kDrumKV = 12.0 / (5800.0 / 60.0);
         public static final double kDrumKA = 0.0;
         public static final double kSpindleKP = 0.1;
         public static final double kSpindleKI = 0.0;
         public static final double kSpindleKD = 0.0;
 
-        public static final double kDrumSupplyLimit = 60.0;
-        public static final double kDrumStatorLimit = 80.0;
+        // Raised 10/18 from 60 A to give the drum more headroom to hold RPM
+        // under load (it was sagging a few hundred rpm). Watch the main
+        // breaker: 2 motors x 80 A = 160 A potential vs the 120 A main, so
+        // this is fine for spin-up transients but don't let both sustain it.
+        public static final double kDrumSupplyLimit = 80.0;
+        public static final double kDrumStatorLimit = 100.0;
         public static final double kSpindleSupplyLimit = 40.0;
         public static final double kSpindleStatorLimit = 60.0;
     }
@@ -136,14 +206,21 @@ public final class Constants {
         // Hood motor + sensor both clockwise-positive (flipped 10/13 in
         // motor config so +output drives deploy-ward with +readings).
         // Direction is passed as an explicit InvertedValue in Hood.
-        public static final boolean kHoodEncoderInverted = true;
         public static final double kHoodDegreesPerRotation = 360.0; // through-bore = 1 rot = 360 deg
 
-        public static final double kHoodKP = 25.0;
+        // Hold tune (10/19): KP 25 / KD 0.5 / KS 0.3 with UseClosedLoopSign
+        // buzzed at the setpoint. The static-friction term was flipping sign
+        // on noise around zero error; switched to UseVelocitySign and cut KD
+        // (derivative on a 50 Hz CANcoder only adds noise). MotionMagic's
+        // profile supplies the velocity feedforward, so KD is not needed.
+        public static final double kHoodKP = 15.0;
         public static final double kHoodKI = 0.0;
-        public static final double kHoodKD = 0.5;
-        public static final double kHoodKS = 0.3;
+        public static final double kHoodKD = 0.0;
+        public static final double kHoodKS = 0.15;
         public static final double kHoodKV = 3.0;
+        // Ignore aim-target changes smaller than this so pose noise doesn't
+        // re-seed MotionMagic every loop (another source of visible buzz).
+        public static final double kHoodTargetDeadbandDeg = 0.15;
         // Gravity hold: EXPERIMENT 10/10 — constant +0.3 V is SUSPECTED of
         // pinning B (it assists stow-ward motion and fights deploy-ward).
         // Zeroed until the drift direction is observed; then re-apply with
@@ -172,6 +249,11 @@ public final class Constants {
         // aim point is nudged sideways by this much so the ball clears it.
         public static final double kHubKeepOut = 0.9;
 
+        // Shot aim point: 6in from the hub CENTER, toward the middle of the
+        // field (the near face of the hub). The pass keep-out still uses the
+        // true hub center.
+        public static final double kHubAimOffset = Units.inchesToMeters(12.0);
+
         // Shooter model: ball pinched between the 3in drum and two 1.125in
         // counter-rollers (drum 40T : roller 24T), with foam slip.
         public static final double kRollerDiameter = Units.inchesToMeters(1.125);
@@ -186,31 +268,34 @@ public final class Constants {
         // Bench 10/14: hood fully DOWN (0) at 1.745 m; ramps up beyond.
         // VERIFY remaining points by shooting.
         public static final double[][] kDistanceToHoodDeg = {
-            {0.5, 0.0},
-            {1.0, 0.0},
-            {1.5, 0.0},
-            {2.0, 8.4},
-            {2.5, 19.0},
-            {3.0, 25},
+                    {0.5, 3.0},
+                    {1.0, 3.5},
+                    {1.5, 5.0},
+                    {2.0, 6.5},
+                    {2.5, 8.0},
+                    {3.0, 9.0},
+                    {3.5, 9.0},
+                    {4.0, 9.5},
         };
-        // (distance, shooter RPM) breakpoints — CAPPED to the measured
-        // 3600 RPM drum ceiling with headroom (3300 max) so the up-to-speed
-        // gate can actually trigger. Bench 10/14: 1.745 m needs full send,
-        // so the curve climbs to ceiling by ~1.75 m and holds. VERIFY rest.
+
         public static final double[][] kDistanceToRPM = {
-            {0.5, 2500.0},
-            {1.0, 2707.0},
-            {1.5, 3100.0},
-            {2.0, 3300.0},
-            {2.5, 3600.0},
-            {3.0, 3600.0},
+                    {0.5, 2800.0},
+                    {1.0, 3050.0},
+                    {1.5, 3200.0},
+                    {2.0, 3450.0},
+                    {2.5, 3700.0},
+                    {3.0, 3900.0},
+                    {3.5, 4200.0},
+                    {4.0, 4450.0},
         };
     }
 
     public static final class Vision {
         public static final String kCameraName = "limelight";
         public static final int kMinTagCount = 1;
-        public static final double kMaxPoseError = 1.5;
+        // Robot-jump gate: reject solves this far (m) from the estimator pose.
+        // Set very high to effectively disable it for now (real value was 1.5).
+        public static final double kMaxPoseError = 100.0;
         // Reject updates while spinning fast: MegaTag2 smears under yaw rate.
         // 180 deg/s (125 runs 100; docs example 360/720).
         public static final double kMaxYawRateDps = 180.0;

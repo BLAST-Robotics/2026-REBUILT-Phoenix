@@ -102,8 +102,7 @@ public class LimelightVision extends SubsystemBase {
         Pose2d measured = estimate.pose;
 
         // Deadlock breaker: booting at the blue corner puts odometry meters
-        // from the first true solve, so the jump gate would block the exact
-        // correction that satisfies it. While disabled, a trustworthy solve
+        // from the first true solve, so while disabled a trustworthy solve
         // (multi-tag, or close + unambiguous single) seeds the estimator
         // outright instead of fusing.
         if (DriverStation.isDisabled()) {
@@ -135,7 +134,8 @@ public class LimelightVision extends SubsystemBase {
             measured = new Pose2d(measured.getTranslation(), state.Pose.getRotation());
         }
 
-        // Don't let vision teleport the robot.
+        // Don't let vision teleport the robot (threshold currently very high
+        // in Constants.Vision.kMaxPoseError — effectively disabled for now).
         double jump = measured.getTranslation().getDistance(
             state.Pose.getTranslation());
         if (jump > Vision.kMaxPoseError) {

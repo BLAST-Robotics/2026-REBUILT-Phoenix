@@ -14,7 +14,6 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -24,9 +23,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
-import frc.robot.commands.AimAndShoot;
 import frc.robot.commands.AimHood;
-import frc.robot.commands.ShootOnTheMove;
 import frc.robot.generated.TunerConstants;
 import frc.robot.logging.FieldZones;
 import frc.robot.logging.PDHLogger;
@@ -36,6 +33,7 @@ import frc.robot.subsystems.Hopper;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.LED;
 import frc.robot.subsystems.Shooter;
+import frc.robot.util.ShotMath;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond);
@@ -49,6 +47,13 @@ public class RobotContainer {
     /* Swerve drive */
     private final SwerveRequest.FieldCentric drive = new SwerveRequest.FieldCentric()
             .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(MaxAngularRate * 0.1)
+            .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
+    // Aim lock: identical to drive but with NO rotational deadband. The hub
+    // heading correction is a computed rate (not a stick), and the stick-drift
+    // deadband was swallowing the small corrections, leaving the robot a few
+    // degrees off target no matter how high the gain got.
+    private final SwerveRequest.FieldCentric aimDrive = new SwerveRequest.FieldCentric()
+            .withDeadband(MaxSpeed * 0.1).withRotationalDeadband(0.0)
             .withDriveRequestType(DriveRequestType.OpenLoopVoltage);
     private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
     private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
@@ -64,14 +69,23 @@ public class RobotContainer {
         new Trigger(() -> SmartDashboard.getBoolean("Test Mode", Constants.kTestControlsDefaultOnBoot));
     private final Trigger matchControls = testControls.negate();
 
-    // Test-mode setpoints (signs match the match bindings).
-    private static final double kTestShooterHighRpm = -3300.0;
-    private static final double kTestShooterLowRpm = -2000.0;
+    // Test-mode setpoints. Drum RPM is always a POSITIVE magnitude (the
+    // feeding direction is applied inside Shooter). Spindle keeps its own sign.
+    private static final double kTestShooterHighRpm = 6000.0;
+    private static final double kTestShooterLowRpm = 2000.0;
     private static final double kTestSpindleRps = -50.0;
 
-    // Competition shot (under the 3600 RPM drum ceiling so gates open).
-    private static final double kShootRpm = -3300.0;
+    // Competition shot. Drum RPM is now live from the distance table (see
+    // aimShootRpm), so it tracks range like the hood does instead of a fixed
+    // setpoint.
     private static final double kShootSpindleRps = -50.0;
+
+    // Drive translation/rotation scale while the shoot trigger is held: keeps
+    // the swerve from starving the drum of voltage mid-shot.
+    private static final double kShootDriveScale = 0.3;
+
+    // Optional upward pad on the table RPM. 0 = shoot the raw table value.
+    private static final double kShootRpmMargin = 0.0;
 
     // Intake roller base (RPS now, closed-loop; was 0.4 duty).
 
@@ -81,11 +95,34 @@ public class RobotContainer {
 
     // Intake deploy/stow toggle state, shared by both pads.
     private boolean m_intakeDeployed = false;
+    // Outtake (X) is a HOLD while deployed. The intake button cancels the
+    // current hold (resumes intake) instead of stowing; it only stows when the
+    // intake is running normally.
+    private boolean m_outtakeSuppressed = false;
 
-    // Aim-toggle shoot-on-the-move: last time the driver translated.
-    private double m_lastTranslateMoveS = 0.0;
-    private static final double kAimLockDelayS = 0.5;
-    private static final double kAimHeadingKp = 4.0;
+    // One-shot boot-homing latch (see Intake.homeToNearestEnd).
+    private boolean m_intakeHomed = false;
+
+    // POV manual tuning (match controls, both used only while tuning).
+    // Direct mechanism control, deliberately NOT connected to the aim table
+    // or the shoot sequence.
+    private double m_manualShooterRpm = 0.0;
+    private double m_manualHoodDeg = 0.0;
+
+    private static final double kAimHeadingKp = 8.0;
+    // Aligned-to-hub heading tolerance (deg) and aim rotation-rate cap as a
+    // fraction of MaxAngularRate. Tighter tolerance + higher gains = snappier.
+    private static final double kAimHeadingTolDeg = 1.0;
+    private static final double kAimHeadingRateFrac = 1.0;
+
+    // While aimed, the driver may nudge the aim heading with the right stick at
+    // this fraction of MaxAngularRate. The nudge accumulates into a heading
+    // offset that holds while aiming and is cleared when aim is released, so it
+    // never leaks into normal driving.
+    private static final double kAimManualRotFrac = 0.2;
+    private static final double kAimHeadingOffsetMaxDeg = 20.0;
+    private double m_aimHeadingOffsetRad = 0.0;
+    private double m_aimOffsetLastTime = 0.0;
 
     /** 0.3x slow-mode drive request, shared by match hold and test hold. */
     private SwerveRequest slowDriveRequest() {
@@ -97,8 +134,8 @@ public class RobotContainer {
     /**
      * Aim-toggle drive: BACK locked on the target (shooter side) always;
      * translation follows the driver sticks with NO slew limiting so
-     * shoot-on-the-move answers instantly. X-brake re-engages 500 ms after
-     * the sticks go still.
+     * shoot-on-the-move answers instantly. When the sticks go still the
+     * rotation stops as soon as the robot is faced (no settle delay).
      *
      * <p>The target is the hub while the robot is inside its own alliance
      * zone, and switches automatically to a hub-clearing point in that zone
@@ -111,37 +148,61 @@ public class RobotContainer {
         SmartDashboard.putBoolean("Aim/AlignedToHub", hood.hoodAtTarget());
         var pose = drivetrain.getState().Pose;
         Translation2d target = currentAimPoint();
-        // Back of the robot faces the target: desired heading = bearing + 180.
+        // Driver heading nudge: accumulate the right stick at 0.2x rate into a
+        // held offset (clamped), so the driver can rotate slightly while aimed.
+        double now = edu.wpi.first.wpilibj.Timer.getFPGATimestamp();
+        double dt = m_aimOffsetLastTime <= 0.0 ? 0.0
+            : Math.min(0.1, now - m_aimOffsetLastTime);
+        m_aimOffsetLastTime = now;
+        m_aimHeadingOffsetRad += -driver.getRightX() * MaxAngularRate
+            * kAimManualRotFrac * dt;
+        double maxOffset = Math.toRadians(kAimHeadingOffsetMaxDeg);
+        m_aimHeadingOffsetRad = Math.max(-maxOffset,
+            Math.min(maxOffset, m_aimHeadingOffsetRad));
+        SmartDashboard.putNumber("Aim/HeadingOffsetDeg",
+            Math.toDegrees(m_aimHeadingOffsetRad));
+        // Back of the robot faces the target: desired heading = bearing + 180,
+        // plus any driver nudge.
         double errRad = target.minus(pose.getTranslation()).getAngle()
             .plus(Rotation2d.fromDegrees(180.0))
+            .plus(Rotation2d.fromRadians(m_aimHeadingOffsetRad))
             .minus(pose.getRotation()).getRadians();
-        double lockRate = Math.max(-MaxAngularRate * 0.6,
-            Math.min(MaxAngularRate * 0.6, kAimHeadingKp * errRad));
-        if (Math.abs(errRad) < Math.toRadians(0.5)) {
+        double lockRate = Math.max(-MaxAngularRate * kAimHeadingRateFrac,
+            Math.min(MaxAngularRate * kAimHeadingRateFrac, kAimHeadingKp * errRad));
+        if (Math.abs(errRad) < Math.toRadians(kAimHeadingTolDeg * 0.5)) {
             lockRate = 0.0;
         }
 
         double translateActivity = Math.abs(driver.getLeftY()) + Math.abs(driver.getLeftX());
         if (translateActivity > 0.15) {
-            m_lastTranslateMoveS = Timer.getFPGATimestamp();
-            // Slow mode (RB, either pad) scales translation only: the hub
-            // heading lock and hood tracking keep running, so slowing down
-            // never cancels shoot-on-the-move.
+            // Slow mode scales translation only: the hub heading lock and hood
+            // tracking keep running, so slowing down never cancels
+            // shoot-on-the-move. Triggers on RB (either pad) OR any shoot
+            // trigger, so shooting auto-slows to protect the drum.
             double slow = (driver.rightBumper().getAsBoolean()
-                || operator.rightBumper().getAsBoolean()) ? 0.3 : 1.0;
+                || operator.rightBumper().getAsBoolean()
+                || shootingNow()) ? kShootDriveScale : 1.0;
             SmartDashboard.putBoolean("Aim/Slow", slow < 1.0);
-            return drive.withVelocityX(-driver.getLeftY() * MaxSpeed * SpeedMultiplier * slow)
+            SmartDashboard.putBoolean("Aim/ShootSlow", shootingNow());
+            return aimDrive.withVelocityX(-driver.getLeftY() * MaxSpeed * SpeedMultiplier * slow)
                 .withVelocityY(-driver.getLeftX() * MaxSpeed * SpeedMultiplier * slow)
                 .withRotationalRate(lockRate);
         }
-        // Still: keep turning toward the hub until faced (2 deg), then
-        // simply stop — straight modules hold fine, no X-brake needed.
-        boolean faced = Math.abs(errRad) < Math.toRadians(2.0);
-        boolean stillLong = Timer.getFPGATimestamp() - m_lastTranslateMoveS > kAimLockDelayS;
-        if (stillLong && faced) {
-            return drive.withVelocityX(0.0).withVelocityY(0.0).withRotationalRate(0.0);
+        // Still: keep turning toward the target until faced
+        // (kAimHeadingTolDeg), then simply stop — straight modules hold fine,
+        // no X-brake needed.
+        boolean faced = Math.abs(errRad) < Math.toRadians(kAimHeadingTolDeg);
+        if (faced) {
+            return aimDrive.withVelocityX(0.0).withVelocityY(0.0).withRotationalRate(0.0);
         }
-        return drive.withVelocityX(0.0).withVelocityY(0.0).withRotationalRate(lockRate);
+        return aimDrive.withVelocityX(0.0).withVelocityY(0.0).withRotationalRate(lockRate);
+    }
+
+    /** Drops the driver's aim-heading nudge (called when aim is released). */
+    private void resetAimHeadingOffset() {
+        m_aimHeadingOffsetRad = 0.0;
+        m_aimOffsetLastTime = 0.0;
+        SmartDashboard.putNumber("Aim/HeadingOffsetDeg", 0.0);
     }
 
     /**
@@ -160,6 +221,12 @@ public class RobotContainer {
         return !ownZone.equals(FieldZones.zoneFor(drivetrain.getState().Pose.getX()));
     }
 
+    /** True while either pad holds the shoot trigger in Match control. */
+    private boolean shootingNow() {
+        return matchControls.getAsBoolean()
+            && (driver.rightTrigger().getAsBoolean() || operator.rightTrigger().getAsBoolean());
+    }
+
     /** Aim point for the muzzle: the hub, or a hub-clearing pass point in the own zone. */
     private Translation2d currentAimPoint() {
         boolean red = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
@@ -167,6 +234,45 @@ public class RobotContainer {
         return passing()
             ? PassGeometry.safeAimPoint(drivetrain.getState().Pose.getTranslation(), red)
             : PassGeometry.hub(red);
+    }
+
+    /**
+     * Live drum RPM for the current aim point from the distance table, using
+     * the same flight-time lead as AimHood. Returned as a POSITIVE magnitude
+     * (the feeding direction is applied inside Shooter).
+     */
+    private double aimShootRpm() {
+        var pose = drivetrain.getState().Pose;
+        var speeds = drivetrain.getState().Speeds;
+        Translation2d fieldVel = new Translation2d(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond)
+            .rotateBy(pose.getRotation());
+        var shot = ShotMath.solve(
+            ShotMath.muzzle(pose.getTranslation(), pose.getRotation()),
+            fieldVel, currentAimPoint());
+        double commanded = shot.rpm() + kShootRpmMargin;
+        SmartDashboard.putNumber("Aim/ShootDrumRPM", commanded);
+        return commanded;
+    }
+
+    /**
+     * POV manual tuning: step the shooter drum target by hand and push it
+     * straight to the hardware. Deliberately independent of the aim table and
+     * the shoot sequence — used to dial in table values by observation.
+     */
+    private void nudgeManualShooterRpm(double deltaRpm) {
+        // Clamp at 0: the drum only ever runs the feeding way, so a negative
+        // "target" is meaningless (it would just spin the same direction).
+        m_manualShooterRpm = Math.max(0.0, m_manualShooterRpm + deltaRpm);
+        shooter.setDrumRpm(m_manualShooterRpm);
+        SmartDashboard.putNumber("Tune/ShooterRpm", m_manualShooterRpm);
+    }
+
+    /** POV manual tuning: step the hood angle by hand (clamped to travel). */
+    private void nudgeManualHoodDeg(double deltaDeg) {
+        m_manualHoodDeg = Math.max(0.0,
+            Math.min(Constants.Hood.kHoodTravelDegrees, m_manualHoodDeg + deltaDeg));
+        hood.setHoodDegrees(m_manualHoodDeg);
+        SmartDashboard.putNumber("Tune/HoodDeg", m_manualHoodDeg);
     }
 
     // Subsystems
@@ -196,6 +302,10 @@ public class RobotContainer {
 
         SmartDashboard.putBoolean("Test Mode", Constants.kTestControlsDefaultOnBoot);
 
+        // Manual POV tuning readouts (see the match-controls POV bindings).
+        SmartDashboard.putNumber("Tune/ShooterRpm", m_manualShooterRpm);
+        SmartDashboard.putNumber("Tune/HoodDeg", m_manualHoodDeg);
+
         pdh.populateDashboard();
         MechanismTriggers.logNames();
 
@@ -224,6 +334,55 @@ public class RobotContainer {
         }
     }
 
+    /**
+     * One-shot boot homing of the intake pivot: on the first enable it drives
+     * to the nearer travel end and re-zeros the virtual trim. Skipped when a
+     * home is already stored in Preferences, once it has run this power cycle,
+     * or if disabled by kPivotHomeOnBoot.
+     */
+    private Command intakeBootHome() {
+        return Commands.either(
+            Commands.runOnce(() -> m_intakeHomed = true)
+                .andThen(intake.homeToNearestEnd()),
+            Commands.none(),
+            () -> Constants.Intake.kPivotHomeOnBoot && !m_intakeHomed && !intake.hasStoredHome());
+    }
+
+    /**
+     * Intake button (B). Three cases:
+     * <ul>
+     *   <li>Stowed: deploy and run intake.</li>
+     *   <li>Deployed while X is held (outtaking): cancel the outtake hold and
+     *       resume intake; do NOT stow.</li>
+     *   <li>Deployed and running normally: stow.</li>
+     * </ul>
+     * Outtake is a hold on X and is refused while stowed.
+     */
+    private void handleIntakeButton() {
+        if (!m_intakeDeployed) {
+            m_intakeDeployed = true;
+            m_outtakeSuppressed = false;
+            intake.setPivotTarget(Constants.Intake.kPivotDeployedRot);
+        } else if (outtakeHeld()) {
+            m_outtakeSuppressed = true;
+            intake.setPivotTarget(Constants.Intake.kPivotDeployedRot);
+        } else {
+            m_intakeDeployed = false;
+            m_outtakeSuppressed = false;
+            intake.setPivotTarget(Constants.Intake.kPivotStowedRot);
+        }
+    }
+
+    /** X is the outtake hold (either pad). Suppressed until X is re-pressed. */
+    private boolean outtakeHeld() {
+        return driver.x().getAsBoolean() || operator.x().getAsBoolean();
+    }
+
+    /** Outtake is actually running: X held and not cancelled by the intake button. */
+    private boolean outtaking() {
+        return outtakeHeld() && !m_outtakeSuppressed;
+    }
+
     private void configureBindings() {
         /* ============ Neutral modes (subsystems, not swerve) ============ */
         // Disabled: everything coasts (safe to push, mechanisms settle).
@@ -241,11 +400,11 @@ public class RobotContainer {
         RobotModeTriggers.autonomous().onTrue(Commands.runOnce(() -> {
             hood.setBrakeMode(true);
             intake.setPivotBrakeMode(true);
-        }, hood, intake));
+        }, hood, intake).andThen(intakeBootHome()));
         RobotModeTriggers.teleop().onTrue(Commands.runOnce(() -> {
             hood.setBrakeMode(true);
             intake.setPivotBrakeMode(true);
-        }, hood, intake));
+        }, hood, intake).andThen(intakeBootHome()));
 
         /* ============ Drive ============ */
         // Aim-toggle state (LT latch): defined up here because the slow-mode
@@ -255,9 +414,13 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> {
                 SmartDashboard.putBoolean("Aim/Active", false);
                 SmartDashboard.putBoolean("Aim/AlignedToHub", false);
-                return drive.withVelocityX(xLimiter.calculate(-driver.getLeftY()) * MaxSpeed * SpeedMultiplier)
-                    .withVelocityY(yLimiter.calculate(-driver.getLeftX()) * MaxSpeed * SpeedMultiplier)
-                    .withRotationalRate(rotationalLimiter.calculate(-driver.getRightX()) * MaxAngularRate * SpeedMultiplier);
+                // Shoot trigger auto-slows the whole drive to 0.3x so the
+                // swerve doesn't sag the drum while a shot is running.
+                double scale = shootingNow() ? kShootDriveScale : 1.0;
+                SmartDashboard.putBoolean("Aim/ShootSlow", scale < 1.0);
+                return drive.withVelocityX(xLimiter.calculate(-driver.getLeftY()) * MaxSpeed * SpeedMultiplier * scale)
+                    .withVelocityY(yLimiter.calculate(-driver.getLeftX()) * MaxSpeed * SpeedMultiplier * scale)
+                    .withRotationalRate(rotationalLimiter.calculate(-driver.getRightX()) * MaxAngularRate * SpeedMultiplier * scale);
             })
         );
 
@@ -285,7 +448,7 @@ public class RobotContainer {
         // driver-only). Shared command instances: pressing both pads runs it
         // once; releasing one pad while the other holds causes a one-loop
         // reschedule blip. Coordinate handoffs.
-        var shootSequence = shooter.shootAtRpm(kShootRpm, kShootSpindleRps,
+        var shootSequence = shooter.shootAtRpm(this::aimShootRpm, kShootSpindleRps,
                 Constants.Shooter.kSpindleIdleRPS, hood)
             .alongWith(hopper.feedWhenReady(shooter,
                 Constants.Hopper.kAgitatorIdleRPS, Constants.Hopper.kAgitatorMaxRPS));
@@ -318,30 +481,21 @@ public class RobotContainer {
             Commands.runOnce(() -> shooter.resetFeedLatch()).andThen(intake.shootDip()));
         operator.rightTrigger().and(matchControls).onTrue(
             Commands.runOnce(() -> shooter.resetFeedLatch()).andThen(intake.shootDip()));
-        // B: deploy/stow toggle (both pads flip the same latch).
-        // The toggle ONLY flips state + sets the pivot target (both instant,
-        // always-ending); rollers run off the latch trigger below. Earlier
-        // revisions chained never-ending roller phases into the press, which
-        // deadlocked every press after the first two (same-instance
-        // reschedule is ignored while running).
-        driver.b().and(matchControls).onTrue(Commands.runOnce(() -> {
-            m_intakeDeployed = !m_intakeDeployed;
-            intake.setPivotTarget(m_intakeDeployed
-                ? Constants.Intake.kPivotDeployedDelta
-                : Constants.Intake.kPivotStowedDelta);
-        }));
-        operator.b().and(matchControls).onTrue(Commands.runOnce(() -> {
-            m_intakeDeployed = !m_intakeDeployed;
-            intake.setPivotTarget(m_intakeDeployed
-                ? Constants.Intake.kPivotDeployedDelta
-                : Constants.Intake.kPivotStowedDelta);
-        }));
-        // Rollers follow the latch (smart 40 RPS). Dip/test/auto commands
-        // requiring intake supersede while they run, then this resumes.
-        // Enabled-only: nothing auto-runs while disabled.
-        new Trigger(() -> m_intakeDeployed).and(matchControls)
+        // B: intake button (both pads). Stowed -> deploy + intake; deployed and
+        // outtaking -> resume intake (never stows on that press); deployed and
+        // running normally -> stow.
+        driver.b().and(matchControls).onTrue(Commands.runOnce(this::handleIntakeButton));
+        operator.b().and(matchControls).onTrue(Commands.runOnce(this::handleIntakeButton));
+        // Rollers follow the latch (25 RPS) whenever deployed and NOT outtaking.
+        // Dip/test/auto commands requiring intake supersede while they run, then
+        // this resumes. Enabled-only: nothing auto-runs while disabled.
+        new Trigger(() -> m_intakeDeployed && !outtaking()).and(matchControls)
             .and(RobotModeTriggers.disabled().negate())
             .whileTrue(intake.runRoller(Constants.Intake.kRollerBaseRPS));
+        // Outtake is a HOLD (X), only possible while deployed.
+        new Trigger(() -> m_intakeDeployed && outtaking()).and(matchControls)
+            .and(RobotModeTriggers.disabled().negate())
+            .whileTrue(intake.runRoller(-0.5));
         // LT toggle: aim mode. Heading locked on the hub (hood tracks too,
         // shooter NEVER spins). Move sticks for shoot-on-the-move; 500 ms
         // still re-brakes. RB slows translation to 0.3x without breaking the
@@ -356,6 +510,9 @@ public class RobotContainer {
             .onTrue(Commands.runOnce(() -> m_aimToggled = !m_aimToggled));
         aimActive.whileTrue(drivetrain.applyRequest(this::aimDriveRequest)
             .alongWith(new AimHood(drivetrain, hood, this::currentAimPoint)));
+        // Releasing aim drops the driver's manual heading nudge so it never
+        // carries into normal driving or the next aim session.
+        aimActive.onFalse(Commands.runOnce(this::resetAimHeadingOffset));
         // Stow on toggle-off only while enabled: firing this through a
         // disable would schedule a ghost stow that drives the hood on the
         // next enable (outputs are dead in disabled, the command isn't).
@@ -363,9 +520,12 @@ public class RobotContainer {
             DriverStation::isEnabled));
         RobotModeTriggers.disabled()
             .onTrue(Commands.runOnce(() -> m_aimToggled = false));
-        // X: reverse intake rollers (both pads, jam clearing).
-        driver.x().and(matchControls).whileTrue(intake.runRoller(-0.5));
-        operator.x().and(matchControls).whileTrue(intake.runRoller(-0.5));
+        // X: outtake (reverse rollers, both pads) — a HOLD, and disabled while
+        // stowed. Each press clears a previous B-cancel so the hold works again.
+        driver.x().and(matchControls)
+            .onTrue(Commands.runOnce(() -> m_outtakeSuppressed = false));
+        operator.x().and(matchControls)
+            .onTrue(Commands.runOnce(() -> m_outtakeSuppressed = false));
         operator.a().and(matchControls).whileTrue(drivetrain.applyRequest(() -> brake));
         // Slow 0.3x (both pads) + seed (both pads, match).
         // Match slow yields to aim (see drive section): RB while aimed only
@@ -375,13 +535,18 @@ public class RobotContainer {
         operator.leftBumper().and(matchControls)
             .onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
 
-        // Aiming (uses Limelight pose -> interpolating tables).
-        //operator.povUp().whileTrue(new AimAndShoot(drivetrain, hood, shooter));
-
-        // Shoot on the move: keeps aiming at the target from the live pose while
-        // the robot is driving, firing through the spindle continuously. Hold to
-        // keep re-aiming as you travel.
-        //operator.start().whileTrue(new ShootOnTheMove(drivetrain, hood, shooter));
+        // POV manual tuning (match controls): POV up/down step the shooter
+        // drum target by 100 RPM, POV left/right step the hood angle by 2
+        // degrees. Direct manual control for dialing in the aim table; it does
+        // NOT touch the aim code or the shoot sequence.
+        operator.povUp().and(matchControls)
+            .onTrue(Commands.runOnce(() -> nudgeManualShooterRpm(100.0)));
+        operator.povDown().and(matchControls)
+            .onTrue(Commands.runOnce(() -> nudgeManualShooterRpm(-100.0)));
+        operator.povLeft().and(matchControls)
+            .onTrue(Commands.runOnce(() -> nudgeManualHoodDeg(2.0)));
+        operator.povRight().and(matchControls)
+            .onTrue(Commands.runOnce(() -> nudgeManualHoodDeg(-2.0)));
 
         /* ============ Test controls (Control Mode = Test) ============ */
         // Shooter high/low: rev drums + spindle together.
@@ -414,7 +579,8 @@ public class RobotContainer {
         operator.a().and(testControls).whileTrue(hood.setAngle(0.0));
 
         // Intake roller + agitator.
-        operator.rightBumper().and(testControls).whileTrue(intake.runRoller(20.0));
+        operator.rightBumper().and(testControls)
+            .whileTrue(intake.runRoller(Constants.Intake.kRollerBaseRPS));
         operator.rightTrigger().and(testControls).whileTrue(hopper.runForward());
 
         // Button/mode debug: edge-triggered, no subsystem requirements.

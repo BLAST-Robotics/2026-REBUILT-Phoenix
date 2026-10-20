@@ -29,13 +29,17 @@ public class Hopper extends SubsystemBase {
 
 /** Sets agitator velocity in mechanism RPS. */
     public void setAgitatorRps(double rps) {
+        if (!Constants.Enabled.kHopper) {
+            m_agitator.set(0.0);
+            return;
+        }
         m_agitatorTargetRps = rps;
         double motorRps = MotorConfigs.outputToMotorRps(rps, Constants.Hopper.kAgitatorReduction);
         m_agitator.setControl(new VelocityVoltage(motorRps));
     }
 
     public void setAgitatorPercentage(double percent) {
-        m_agitator.set(percent);
+        m_agitator.set(Constants.Enabled.kHopper ? percent : 0.0);
     }
 
     public Command runForward() {

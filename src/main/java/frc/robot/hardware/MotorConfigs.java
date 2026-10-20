@@ -173,10 +173,28 @@ public final class MotorConfigs {
         double statorLimit,
         double kp, double ki, double kd, double kv, double ka
     ) {
+        applyVelocityConfig(motor, inverted, supplyLimit, statorLimit,
+            kp, ki, kd, 0.0, kv, ka, 0.0);
+    }
+
+    /**
+     * Same, with an explicit static-friction feedforward (volts). Useful for
+     * drums that draw a constant load and sag a fixed RPM below target.
+     */
+    public static void applyVelocityConfig(
+        TalonFX motor,
+        boolean inverted,
+        double supplyLimit,
+        double statorLimit,
+        double kp, double ki, double kd, double ks, double kv, double ka,
+        double velocityFilterS
+    ) {
         TalonFXConfiguration cfg = new TalonFXConfiguration()
             .withSlot0(new Slot0Configs()
-                .withKP(kp).withKI(ki).withKD(kd).withKV(kv).withKA(ka)
+                .withKP(kp).withKI(ki).withKD(kd).withKS(ks).withKV(kv).withKA(ka)
                 .withStaticFeedforwardSign(StaticFeedforwardSignValue.UseClosedLoopSign))
+            .withFeedback(new FeedbackConfigs()
+                .withVelocityFilterTimeConstant(velocityFilterS))
             .withMotorOutput(new MotorOutputConfigs()
                 .withInverted(inverted
                     ? InvertedValue.Clockwise_Positive

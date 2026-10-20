@@ -8,11 +8,10 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 
-import frc.robot.AimTables;
 import frc.robot.Constants;
-import frc.robot.Constants.Aim;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Hood;
+import frc.robot.util.ShotMath;
 
 /**
  * Aim HOOD only (never spins the shooter). Looks up hood angle and drum RPM
@@ -23,7 +22,6 @@ import frc.robot.subsystems.Hood;
 public class AimHood extends Command {
     private final CommandSwerveDrivetrain m_drivetrain;
     private final Hood m_hood;
-    private final AimTables m_aimTables;
     private final Supplier<Translation2d> m_aimPoint;
 
     public AimHood(
@@ -33,7 +31,6 @@ public class AimHood extends Command {
     ) {
         m_drivetrain = drivetrain;
         m_hood = hood;
-        m_aimTables = AimTables.getInstance();
         m_aimPoint = aimPoint;
         addRequirements(hood);
     }
@@ -41,10 +38,6 @@ public class AimHood extends Command {
     @Override
     public void execute() {
         Pose2d pose = m_drivetrain.getState().Pose;
-
-        // Ball exits 10in behind robot center.
-        Translation2d muzzle = pose.getTranslation()
-            .minus(new Translation2d(Aim.kMuzzleOffsetBack, 0.0).rotateBy(pose.getRotation()));
 
         // Robot velocity in field frame.
         ChassisSpeeds speeds = m_drivetrain.getState().Speeds;
@@ -56,24 +49,10 @@ public class AimHood extends Command {
         // (hub-dodged) when the robot is outside its alliance zone.
         Translation2d hub = m_aimPoint.get();
 
-        double tof = 0.0;
-        double distance = 0.0;
-        double hoodDeg = 0.0;
-        double rpm = 0.0;
-        for (int i = 0; i < 3; i++) {
-            distance = muzzle.getDistance(hub.minus(fieldVel.times(tof)));
-            hoodDeg = m_aimTables.hoodDegreesForDistance(distance);
-            rpm = m_aimTables.shooterRpmForDistance(distance);
-            double exitSpeed = Aim.kExitPerDrumRps * (rpm / 60.0);
-            // Robot velocity along the shot direction adds to (or steals
-            // from) exit speed: driving at the hub throws hotter.
-            var shotDir = hub.minus(muzzle);
-            double dirNorm = Math.max(1e-6, shotDir.getNorm());
-            double vAlong = fieldVel.getX() * shotDir.getX() / dirNorm
-                + fieldVel.getY() * shotDir.getY() / dirNorm;
-            double horizSpeed = exitSpeed * Math.cos(Math.toRadians(hoodDeg)) + vAlong;
-            tof = horizSpeed > 1e-6 ? distance / horizSpeed : 0.0;
-        }
+        var shot = ShotMath.solve(ShotMath.muzzle(pose.getTranslation(), pose.getRotation()), fieldVel, hub);
+        double distance = shot.distance();
+        double hoodDeg = shot.hoodDeg();
+        double rpm = shot.rpm();
 
         // Clamp into the boot-relative window (0 = stowed delta).
         hoodDeg = Math.max(0.0,
@@ -82,8 +61,9 @@ public class AimHood extends Command {
         SmartDashboard.putNumber("Aim/Distance", distance);
         SmartDashboard.putNumber("Aim/HoodDeg", hoodDeg);
         SmartDashboard.putNumber("Aim/DrumRPM", rpm);
-        // Bearing to hub relative to robot heading (0 = straight ahead).
-        double hubAngleDeg = hub.minus(muzzle).getAngle().minus(pose.getRotation()).getDegrees();
+        // Bearing to target relative to robot heading (0 = straight ahead).
+        double hubAngleDeg = hub.minus(ShotMath.muzzle(pose.getTranslation(), pose.getRotation()))
+            .getAngle().minus(pose.getRotation()).getDegrees();
         SmartDashboard.putNumber("Aim/HubAngleDeg", hubAngleDeg);
 
         m_hood.setHoodDegrees(hoodDeg);
