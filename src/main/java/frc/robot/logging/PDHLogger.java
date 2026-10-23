@@ -31,11 +31,8 @@ public class PDHLogger extends SubsystemBase {
         }
 
         SmartDashboard.putNumber("PDH/TotalCurrent", m_pdh.getTotalCurrent());
-        // Battery voltage from the RIO (always valid) — NOT the PDH object,
-        // whose CAN ID is still unconfirmed (constructor todo). A missing PDH
-        // would otherwise leave this topic dead and spam failed CAN reads.
-        SmartDashboard.putNumber("PDH/Voltage",
-            edu.wpi.first.wpilibj.RobotController.getBatteryVoltage());
+        // PDH 2.0 confirmed on CAN id 25: use its own battery voltage read.
+        SmartDashboard.putNumber("PDH/Voltage", m_pdh.getVoltage());
 
         // Log to the loop output file for post-match debugging.
         DataLogManager.log("PDH total current: " + m_pdh.getTotalCurrent()

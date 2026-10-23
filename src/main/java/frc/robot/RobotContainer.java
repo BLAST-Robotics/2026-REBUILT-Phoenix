@@ -91,7 +91,6 @@ public class RobotContainer {
 
     // RB aim-toggle state (explicit: onFalse stow would cancel a
     // toggleOnTrue latch on every release, so the toggle owns its flag).
-    private boolean m_aimToggled = false;
 
     // Intake deploy/stow toggle state, shared by both pads.
     private boolean m_intakeDeployed = false;
@@ -206,19 +205,36 @@ public class RobotContainer {
     }
 
     /**
-     * Passing engages automatically: while auto-aim is toggled on, the muzzle
-     * aims into the own alliance zone once the robot has left that zone.
-     * Inside the zone the hub is the target, so both are handled by
+     * Passing engages automatically: while the shoot hold is active, the
+     * muzzle aims into the own alliance zone once the robot has left that
+     * zone. Inside the zone the hub is the target, so both are handled by
      * {@link #currentAimPoint()}.
      */
     private boolean passing() {
-        if (!m_aimToggled) {
+        if (!shootingNow()) {
             return false;
         }
         boolean red = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
             == DriverStation.Alliance.Red;
         String ownZone = red ? FieldZones.kRedZone : FieldZones.kBlueZone;
         return !ownZone.equals(FieldZones.zoneFor(drivetrain.getState().Pose.getX()));
+    }
+
+    /**
+     * The full aim-and-shoot hold recipe: hub heading lock, hood tracking,
+     * drum rev + spindle + agitator feed. Built fresh on every call because a
+     * composed WPILib Command may not be added to a second composition — both
+     * pads share the recipe, never the instance.
+     */
+    private Command aimAndShoot() {
+        return drivetrain.applyRequest(this::aimDriveRequest)
+            .alongWith(
+                new AimHood(drivetrain, hood, this::currentAimPoint),
+                shooter.shootAtRpm(this::aimShootRpm, kShootSpindleRps,
+                    Constants.Shooter.kSpindleIdleRPS, hood)
+                    .alongWith(hopper.feedWhenReady(shooter,
+                        Constants.Hopper.kAgitatorIdleRPS,
+                        Constants.Hopper.kAgitatorMaxRPS)));
     }
 
     /** True while either pad holds the shoot trigger in Match control. */
@@ -283,7 +299,7 @@ public class RobotContainer {
     private final Hood hood = new Hood();
     private final LED led = new LED();
     private final LimelightVision vision = new LimelightVision(drivetrain, logger.field);
-    private final PDHLogger pdh = new PDHLogger(16); // PDH 2.0 CAN id (todo: confirm)
+    private final PDHLogger pdh = new PDHLogger(25);
     private final FieldZones fieldZones = new FieldZones(() -> drivetrain.getState().Pose);
 
     private final SendableChooser<Command> autoChooser;
@@ -409,7 +425,7 @@ public class RobotContainer {
         /* ============ Drive ============ */
         // Aim-toggle state (LT latch): defined up here because the slow-mode
         // bindings below need it — slow mode yields to aim, never fights it.
-        Trigger aimActive = new Trigger(() -> m_aimToggled).and(matchControls);
+        Trigger aimActive = new Trigger(this::shootingNow);
         drivetrain.setDefaultCommand(
             drivetrain.applyRequest(() -> {
                 SmartDashboard.putBoolean("Aim/Active", false);
@@ -448,10 +464,7 @@ public class RobotContainer {
         // driver-only). Shared command instances: pressing both pads runs it
         // once; releasing one pad while the other holds causes a one-loop
         // reschedule blip. Coordinate handoffs.
-        var shootSequence = shooter.shootAtRpm(this::aimShootRpm, kShootSpindleRps,
-                Constants.Shooter.kSpindleIdleRPS, hood)
-            .alongWith(hopper.feedWhenReady(shooter,
-                Constants.Hopper.kAgitatorIdleRPS, Constants.Hopper.kAgitatorMaxRPS));
+        // Fresh recipe instances are built by aimAndShoot() per binding.
         // Match idle: spindle trickle + agitator trickle whenever enabled.
         // RT shooting overrides both while held (superseded commands swap).
         Trigger neitherTrigger = driver.rightTrigger().negate()
@@ -475,8 +488,14 @@ public class RobotContainer {
         // RT: shoot. Drums rev; spindle + agitator stay at trickle until the
         // drums are up to speed, then kick to full feed. Intake dips up over
         // 4 s on press, drops back to deployed at the end.
-        driver.rightTrigger().and(matchControls).whileTrue(shootSequence);
-        operator.rightTrigger().and(matchControls).whileTrue(shootSequence);
+        // RT: shoot hold = the WHOLE thing: hub heading lock (aimDriveRequest,
+        // passing included), hood tracking (AimHood), drums rev to the
+        // distance-table RPM, spindle + agitator kick to full feed once the
+        // drums are up. Releasing RT ends the lock and stows the hood.
+        // Built per call: WPILib forbids reusing a composed Command in a
+        // second composition (both pads share the recipe, not the instance).
+        driver.rightTrigger().and(matchControls).whileTrue(aimAndShoot());
+        operator.rightTrigger().and(matchControls).whileTrue(aimAndShoot());
         driver.rightTrigger().and(matchControls).onTrue(
             Commands.runOnce(() -> shooter.resetFeedLatch()).andThen(intake.shootDip()));
         operator.rightTrigger().and(matchControls).onTrue(
@@ -496,30 +515,16 @@ public class RobotContainer {
         new Trigger(() -> m_intakeDeployed && outtaking()).and(matchControls)
             .and(RobotModeTriggers.disabled().negate())
             .whileTrue(intake.runRoller(-0.5));
-        // LT toggle: aim mode. Heading locked on the hub (hood tracks too,
-        // shooter NEVER spins). Move sticks for shoot-on-the-move; 500 ms
-        // still re-brakes. RB slows translation to 0.3x without breaking the
-        // lock. Passing is automatic: outside the own alliance zone the aim
-        // point switches to the own zone, dodging the hub if it is in the way.
-        // Second press releases and stows the hood.
-        // (A raw onFalse stow can't do this: it fires on every release and
-        // would cancel the latched toggle — hence the explicit state.)
-        driver.leftTrigger().and(matchControls)
-            .onTrue(Commands.runOnce(() -> m_aimToggled = !m_aimToggled));
-        operator.leftTrigger().and(matchControls)
-            .onTrue(Commands.runOnce(() -> m_aimToggled = !m_aimToggled));
-        aimActive.whileTrue(drivetrain.applyRequest(this::aimDriveRequest)
-            .alongWith(new AimHood(drivetrain, hood, this::currentAimPoint)));
+        // LT aim toggle retired 10/22: aiming now happens inside the RT shoot
+        // hold (heading lock + hood track + rev + feed in one). LT is free.
         // Releasing aim drops the driver's manual heading nudge so it never
         // carries into normal driving or the next aim session.
         aimActive.onFalse(Commands.runOnce(this::resetAimHeadingOffset));
-        // Stow on toggle-off only while enabled: firing this through a
-        // disable would schedule a ghost stow that drives the hood on the
-        // next enable (outputs are dead in disabled, the command isn't).
+        // Hood stows when the hold releases (enabled-only: firing this through
+        // a disable would schedule a ghost stow that drives the hood on the
+        // next enable — outputs are dead in disabled, the command isn't).
         aimActive.onFalse(Commands.either(hood.setAngle(0.0), Commands.none(),
             DriverStation::isEnabled));
-        RobotModeTriggers.disabled()
-            .onTrue(Commands.runOnce(() -> m_aimToggled = false));
         // X: outtake (reverse rollers, both pads) — a HOLD, and disabled while
         // stowed. Each press clears a previous B-cancel so the hold works again.
         driver.x().and(matchControls)

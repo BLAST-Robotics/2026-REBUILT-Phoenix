@@ -40,7 +40,7 @@ public final class Constants {
         // capture / homing. Ends are the MEASURED physical stops; set
         // kPivotEncoderOffset so stowed reads kPivotStowedRot.
         public static final double kPivotStowedRot = -0.48;   // absolute output rotations (measured)
-        public static final double kPivotDeployedRot = 0.445; // absolute output rotations (measured)
+        public static final double kPivotDeployedRot = 0.45; // absolute output rotations (measured)
         // Code-enforced window (measured stow -> deploy span ~0.925 rot).
         public static final double kPivotTravelRot = kPivotDeployedRot - kPivotStowedRot;
 
@@ -70,17 +70,17 @@ public final class Constants {
         public static final double kPivotKD = 0.0;
         public static final double kPivotKS = 0.05;
 
-        public static final double kRollerSupplyLimit = 60.0;
-        public static final double kRollerStatorLimit = 40.0;
+        public static final double kRollerSupplyLimit = 40.0;
+        public static final double kRollerStatorLimit = 30.0;
         // Closed-loop roller velocity, flat 25 RPS everywhere (was 20).
-        public static final double kRollerBaseRPS = 25.0;
-        public static final double kRollerKP = 0.3;
+        public static final double kRollerBaseRPS = 32.0;
+        public static final double kRollerKP = 0.6;
         public static final double kRollerKI = 0.0;
         public static final double kRollerKD = 0.0;
         public static final double kRollerKV = 0.12;
         public static final double kRollerKA = 0.0;
         public static final double kPivotSupplyLimit = 40.0;
-        public static final double kPivotStatorLimit = 60.0;
+        public static final double kPivotStatorLimit = 50.0;
 
         // Talon soft limits off: the frame is boot-relative (captured at
         // construction), so magnet-frame Talon limits are meaningless.
@@ -98,9 +98,9 @@ public final class Constants {
         public static final boolean kAgitatorInverted = false;
         public static final double kAgitatorMaxRPS = 40.0;
         // Match idle trickle (doubled 10/14); spindle runs + (flipped).
-        public static final double kAgitatorIdleRPS = 10.0;
+        public static final double kAgitatorIdleRPS = -10.0;
 
-        public static final double kAgitatorKP = 0.3;
+        public static final double kAgitatorKP = 0.6;
         public static final double kAgitatorKI = 0.0;
         public static final double kAgitatorKD = 0.0;
         public static final double kAgitatorKS = 0.1;
@@ -121,7 +121,7 @@ public final class Constants {
         // Tuning offset (temp, 10/20): every drum setpoint is shifted by this
         // before the velocity loop so PID can be characterized well below the
         // 1:1 free-speed ceiling. Back to 0.0 for match play (as it is now).
-        public static final double kDrumRpmOffset = 0.0;
+        public static final double kDrumRpmOffset = -50.0;
         // Spool ramp, now done in HARDWARE: these two become MotionMagic
         // acceleration/jerk on the drum leader (motor rps/s and rps/s/s).
         // 150 rps/s^2 = the old 9000 rpm/s code ramp; jerk ~2x accel per 1678.
@@ -215,10 +215,10 @@ public final class Constants {
         // 10/20: kS (now 0.25, halved from the 1678-style 0.45 bench start)
         // a middle profile - snappier than the original, less jumpy than
         // the 25/5 sweep.
-        public static final double kHoodKP = 15.0;
+        public static final double kHoodKP = 30.0;
         public static final double kHoodKI = 0.0;
         public static final double kHoodKD = 0.0;
-        public static final double kHoodKV = 4.0;
+        public static final double kHoodKV = 5.0;
         // MotionMagic profile (mechanism rot/s through the 29.6:1 winch).
         public static final double kHoodMMCruiseRps = 3.0;
         public static final double kHoodMMAccelRps2 = 18.0;
@@ -235,8 +235,8 @@ public final class Constants {
         public static final double kHoodKG = 0.20;
         public static final double kHoodKS = 0.25;
 
-        public static final double kHoodSupplyLimit = 40.0;
-        public static final double kHoodStatorLimit = 60.0;
+        public static final double kHoodSupplyLimit = 30.0;
+        public static final double kHoodStatorLimit = 40.0;
     }
 
     public static final class Aim {
