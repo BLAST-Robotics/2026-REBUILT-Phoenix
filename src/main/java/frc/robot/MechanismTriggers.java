@@ -53,7 +53,8 @@ public final class MechanismTriggers {
         SmartDashboard.putStringArray("PathPlanner/Triggers", new String[] {
             "IntakeDeploy", "IntakeStore", "IntakeRoller", "IntakeRollerReverse",
             "AgitatorForward", "AgitatorReverse", "AgitatorStop",
-            "ShooterRev", "ShooterStop", "ShooterSpit", "HoodAngle"
+            "ShooterRev", "ShooterStop", "ShooterSpit", "HoodAngle",
+            "IntakeToggle", "ShootStart", "ShootEnd"
         });
     }
 }

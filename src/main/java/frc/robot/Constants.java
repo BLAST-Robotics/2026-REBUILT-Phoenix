@@ -73,7 +73,7 @@ public final class Constants {
         public static final double kRollerSupplyLimit = 40.0;
         public static final double kRollerStatorLimit = 30.0;
         // Closed-loop roller velocity, flat 25 RPS everywhere (was 20).
-        public static final double kRollerBaseRPS = 32.0;
+        public static final double kRollerBaseRPS = 38.0;
         public static final double kRollerKP = 0.6;
         public static final double kRollerKI = 0.0;
         public static final double kRollerKD = 0.0;
@@ -121,7 +121,7 @@ public final class Constants {
         // Tuning offset (temp, 10/20): every drum setpoint is shifted by this
         // before the velocity loop so PID can be characterized well below the
         // 1:1 free-speed ceiling. Back to 0.0 for match play (as it is now).
-        public static final double kDrumRpmOffset = -50.0;
+        public static final double kDrumRpmOffset = -300.0;
         // Spool ramp, now done in HARDWARE: these two become MotionMagic
         // acceleration/jerk on the drum leader (motor rps/s and rps/s/s).
         // 150 rps/s^2 = the old 9000 rpm/s code ramp; jerk ~2x accel per 1678.
@@ -170,7 +170,7 @@ public final class Constants {
         public static final double kDrumKD = 0.0;
         public static final double kDrumKV = 12.0 / (5800.0 / 60.0);
         public static final double kDrumKA = 0.0;
-        public static final double kSpindleKP = 0.1;
+        public static final double kSpindleKP = 0.4;
         public static final double kSpindleKI = 0.0;
         public static final double kSpindleKD = 0.0;
 
@@ -318,6 +318,22 @@ public final class Constants {
         public static final double kMaxSingleTagDist = 3.0;
         // Reject solves outside the field + margin (6328/3005: 0.5 m).
         public static final double kFieldBorderMargin = 0.5;
+
+        // Confident multi-tag solves fuse vision yaw, so the estimator
+        // rotation follows the camera (the "update rotation when confident"
+        // path). 4 deg is tight enough to hold heading but loose enough not
+        // to fight the gyro on every frame.
+        public static final double kMultiTagYawStdDeg = 4.0;
+        // Single-tag yaw is ambiguous and is normally replaced with the gyro
+        // heading. If a CLOSE, unambiguous tag still disagrees by > 15 deg,
+        // the gyro heading is the problem: heal it with vision yaw.
+        public static final double kSingleTagHealDist = 2.5;
+        public static final double kSingleTagHealMinDeg = 15.0;
+        public static final double kSingleTagHealYawStdDeg = 10.0;
+        // Hard snap: fused yaw handles normal drift. If a confident
+        // multi-tag solve still disagrees by more than this, the gyro frame
+        // itself is wrong, so resetRotation snaps the Pigeon + estimator.
+        public static final double kYawResetMinDeg = 10.0;
     }
 
     public static final class LED {

@@ -21,6 +21,10 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
  * ambiguity flips without MegaTag2's yaw-feed mirror risk), Limelight-side
  * stddevs for trust, timestamp dedup, Z-height sanity.
  *
+ * Confident multi-tag solves also fuse vision yaw, so the estimated robot
+ * rotation follows the camera. A close, unambiguous single tag may heal a
+ * badly wrong gyro heading (>15 deg disagreement).
+ *
  * The camera faces straight backwards off the shooter and is not used for
  * direct aiming — pose only.
  */
@@ -129,9 +133,26 @@ public class LimelightVision extends SubsystemBase {
         }
 
         // Single-tag: keep MT1 translation, substitute gyro heading (254's
-        // fuseWithGyro). Kills ambiguity flips; multi-tag keeps full solve.
+        // fuseWithGyro). Kills ambiguity flips. The one exception is the
+        // large-disagreement heal below, which trusts a close tag's yaw.
+        boolean healSingleTagYaw = false;
         if (estimate.tagCount == 1) {
             measured = new Pose2d(measured.getTranslation(), state.Pose.getRotation());
+            if (estimate.rawFiducials.length > 0) {
+                double yawDisagreement = Math.abs(estimate.pose.getRotation()
+                    .minus(state.Pose.getRotation()).getDegrees());
+                boolean healTrustworthy = estimate.avgTagDist < Vision.kSingleTagHealDist
+                    && estimate.rawFiducials[0].ambiguity < Vision.kMaxAmbiguity;
+                healSingleTagYaw = healTrustworthy
+                    && yawDisagreement > Vision.kSingleTagHealMinDeg
+                    && yawDisagreement < 175.0;
+                if (healSingleTagYaw) {
+                    // A close, unambiguous tag disagreeing this much means
+                    // the gyro heading is wrong, not the tag: use vision yaw.
+                    measured = estimate.pose;
+                }
+                SmartDashboard.putNumber("Vision/YawDisagreement", yawDisagreement);
+            }
         }
 
         // Don't let vision teleport the robot (threshold currently very high
@@ -158,41 +179,47 @@ public class LimelightVision extends SubsystemBase {
             double d = estimate.avgTagDist;
             xyStd = Math.max(0.05, 0.02 * d * d / n);
         }
-        Matrix<N3, N1> stddevs = VecBuilder.fill(xyStd, xyStd, 9999999.0);
+        // Yaw trust: multi-tag solves have reliable rotation, so fuse it and
+        // let the estimator heading follow the camera. Single-tag yaw stays
+        // ignored (gyro substitution) unless the heal above fired.
+        double yawStd;
+        if (estimate.tagCount >= 2) {
+            yawStd = Math.toRadians(Vision.kMultiTagYawStdDeg);
+        } else if (healSingleTagYaw) {
+            yawStd = Math.toRadians(Vision.kSingleTagHealYawStdDeg);
+        } else {
+            yawStd = 9999999.0;
+        }
+        Matrix<N3, N1> stddevs = VecBuilder.fill(xyStd, xyStd, yawStd);
 
         m_lastStamp = stamp;
         m_drivetrain.addVisionMeasurement(measured, stamp, stddevs);
         m_fusedCount++;
         SmartDashboard.putString("Vision/RejectReason", "fused");
         SmartDashboard.putNumber("Vision/FusedCount", m_fusedCount);
+        SmartDashboard.putBoolean("Vision/HeadingHeal", healSingleTagYaw);
+        SmartDashboard.putBoolean("Vision/YawFused", yawStd < 1.0);
+
+        // Hard snap: normal drift is handled by the fused yaw above, but if a
+        // confident multi-tag solve still disagrees badly, the gyro frame
+        // itself is wrong. Reset the Pigeon + estimator rotation so aim,
+        // pathing, AND field-centric driving all agree with the field.
+        boolean yawReset = false;
+        if (estimate.tagCount >= 2) {
+            double residual = Math.abs(measured.getRotation()
+                .minus(state.Pose.getRotation()).getDegrees());
+            if (residual > Vision.kYawResetMinDeg) {
+                m_drivetrain.resetRotation(measured.getRotation());
+                yawReset = true;
+                SmartDashboard.putNumber("Vision/YawResetDeg", residual);
+            }
+        }
+        SmartDashboard.putBoolean("Vision/YawReset", yawReset);
         // Draw the accepted vision solve as its own ghost on the shared
         // Elastic field so raw-vs-fused is visible at a glance.
         m_field.getObject("vision").setPose(measured);
         SmartDashboard.putNumber("Vision/LastUpdate", stamp);
         SmartDashboard.putNumber("Vision/MeasAgeMs",
             (fpgaNow - estimate.timestampSeconds) * 1000.0);
-
-        // Heading heal (CD 517952): MT2 blindly rotates its solve around the
-        // fed yaw, so a wrong boot heading produces impossible mirrored
-        // solves forever. If a trustworthy MT1 solve disagrees with estimator
-        // heading, fuse MT1 WITH rotation trust to drag heading home.
-        LimelightHelpers.PoseEstimate heal =
-            LimelightHelpers.getBotPoseEstimate_wpiBlue(Vision.kCameraName);
-        if (heal != null && heal.tagCount >= 1) {
-            double yawDisagreement = Math.abs(heal.pose.getRotation().minus(
-                state.Pose.getRotation()).getDegrees());
-            boolean healTrustworthy = heal.tagCount >= 2
-                || (heal.avgTagDist < 3.0 && heal.rawFiducials.length > 0
-                    && heal.rawFiducials[0].ambiguity < Vision.kMaxAmbiguity);
-            SmartDashboard.putNumber("Vision/YawDisagreement", yawDisagreement);
-            if (healTrustworthy && yawDisagreement > 15.0 && yawDisagreement < 175.0) {
-                Matrix<N3, N1> healStd = VecBuilder.fill(2.0, 2.0,
-                    Math.toRadians(10.0));
-                m_drivetrain.addVisionMeasurement(heal.pose, stamp, healStd);
-                SmartDashboard.putBoolean("Vision/HeadingHeal", true);
-            } else {
-                SmartDashboard.putBoolean("Vision/HeadingHeal", false);
-            }
-        }
     }
 }

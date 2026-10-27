@@ -18,7 +18,7 @@
                                                                 "x":  0.0,
                                                                 "y":  0.0,
                                                                 "width":  768.0,
-                                                                "height":  768.0,
+                                                                "height":  600.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -34,7 +34,7 @@
                                                                 "x":  768.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -47,7 +47,7 @@
                                                                 "x":  1024.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -62,7 +62,7 @@
                                                                 "x":  1280.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -73,9 +73,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -86,9 +86,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -99,9 +99,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -112,9 +112,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -125,9 +125,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -140,9 +140,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -153,9 +153,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -166,9 +166,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -179,9 +179,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -192,9 +192,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -207,9 +207,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -220,9 +220,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -233,9 +233,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -246,9 +246,22 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
+                                                                "showTitle":  true
+                                                            },
+                                                            {
+                                                                "title":  "Auto Chooser",
+                                                                "type":  "ComboBox Chooser",
+                                                                "properties":  {
+                                                                                   "topic":  "/SmartDashboard/Auto Chooser",
+                                                                                   "period":  0.1
+                                                                               },
+                                                                "x":  1280.0,
+                                                                "y":  500.0,
+                                                                "width":  256.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             }
                                                         ],
@@ -276,7 +289,7 @@
                                                                 "x":  0.0,
                                                                 "y":  0.0,
                                                                 "width":  512.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -294,7 +307,7 @@
                                                                 "x":  512.0,
                                                                 "y":  0.0,
                                                                 "width":  512.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -312,7 +325,7 @@
                                                                 "x":  1024.0,
                                                                 "y":  0.0,
                                                                 "width":  512.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -323,9 +336,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  256.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -338,9 +351,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  0.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -351,9 +364,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -364,9 +377,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -377,9 +390,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  256.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -390,9 +403,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -403,9 +416,9 @@
                                                                                    "period":  0.5
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -416,9 +429,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -431,9 +444,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -444,9 +457,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -457,9 +470,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  256.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -470,9 +483,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -483,9 +496,9 @@
                                                                                    "period":  0.5
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -496,9 +509,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -509,9 +522,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -522,9 +535,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  256.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -535,9 +548,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -548,9 +561,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -563,9 +576,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  0.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -576,9 +589,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -589,9 +602,9 @@
                                                                                    "period":  0.5
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             }
                                                         ],
@@ -614,7 +627,7 @@
                                                                 "x":  0.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -629,7 +642,7 @@
                                                                 "x":  256.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -642,7 +655,7 @@
                                                                 "x":  512.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -657,7 +670,7 @@
                                                                 "x":  768.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -670,7 +683,7 @@
                                                                 "x":  1024.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -685,7 +698,7 @@
                                                                 "x":  1280.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -696,9 +709,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  0.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -709,9 +722,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -722,9 +735,9 @@
                                                                                    "period":  0.03
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -735,9 +748,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  0.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -748,9 +761,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  256.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -761,9 +774,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -774,9 +787,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -787,9 +800,9 @@
                                                                                    "period":  0.5
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -800,9 +813,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -815,9 +828,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  0.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -828,9 +841,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  256.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -841,9 +854,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -856,9 +869,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -869,9 +882,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -882,9 +895,9 @@
                                                                                    "period":  0.5
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -895,9 +908,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  0.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -908,9 +921,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  256.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -921,9 +934,9 @@
                                                                                    "period":  0.05
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -939,9 +952,9 @@
                                                                                    "line_width":  2.5
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  768.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             }
                                                         ],
@@ -966,7 +979,7 @@
                                                                 "x":  0.0,
                                                                 "y":  0.0,
                                                                 "width":  768.0,
-                                                                "height":  768.0,
+                                                                "height":  600.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -979,7 +992,7 @@
                                                                 "x":  768.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -992,7 +1005,7 @@
                                                                 "x":  1024.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1005,7 +1018,7 @@
                                                                 "x":  1280.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1016,9 +1029,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1029,9 +1042,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1042,9 +1055,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1055,9 +1068,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1068,9 +1081,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1081,9 +1094,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1094,9 +1107,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1107,9 +1120,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1120,9 +1133,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             }
                                                         ],
@@ -1145,7 +1158,7 @@
                                                                 "x":  0.0,
                                                                 "y":  0.0,
                                                                 "width":  512.0,
-                                                                "height":  768.0,
+                                                                "height":  600.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1160,7 +1173,7 @@
                                                                 "x":  512.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1175,7 +1188,7 @@
                                                                 "x":  768.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1186,9 +1199,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1199,9 +1212,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1212,9 +1225,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1225,9 +1238,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1238,9 +1251,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1251,9 +1264,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1264,9 +1277,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1277,9 +1290,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  384.0,
+                                                                "y":  300.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1290,9 +1303,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1303,9 +1316,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1316,9 +1329,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1329,9 +1342,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1342,9 +1355,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1355,9 +1368,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1368,9 +1381,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1381,9 +1394,9 @@
                                                                                    "period":  0.2
                                                                                },
                                                                 "x":  1280.0,
-                                                                "y":  640.0,
+                                                                "y":  500.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1401,7 +1414,7 @@
                                                                 "x":  1024.0,
                                                                 "y":  0.0,
                                                                 "width":  512.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             }
                                                         ],
@@ -1424,7 +1437,7 @@
                                                                 "x":  0.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1437,7 +1450,7 @@
                                                                 "x":  256.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1450,7 +1463,7 @@
                                                                 "x":  512.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1463,7 +1476,7 @@
                                                                 "x":  768.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1476,7 +1489,7 @@
                                                                 "x":  1024.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1489,7 +1502,7 @@
                                                                 "x":  1280.0,
                                                                 "y":  0.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1500,9 +1513,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  0.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  512.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1513,9 +1526,9 @@
                                                                                    "period":  0.5
                                                                                },
                                                                 "x":  512.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  512.0,
-                                                                "height":  384.0,
+                                                                "height":  300.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1526,9 +1539,9 @@
                                                                                    "period":  0.1
                                                                                },
                                                                 "x":  1024.0,
-                                                                "y":  128.0,
+                                                                "y":  100.0,
                                                                 "width":  256.0,
-                                                                "height":  128.0,
+                                                                "height":  100.0,
                                                                 "showTitle":  true
                                                             }
                                                         ],
@@ -1566,7 +1579,7 @@
                                                                 "x":  0.0,
                                                                 "y":  0.0,
                                                                 "width":  768.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1584,7 +1597,7 @@
                                                                 "x":  768.0,
                                                                 "y":  0.0,
                                                                 "width":  768.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1600,9 +1613,9 @@
                                                                                    "line_width":  2.5
                                                                                },
                                                                 "x":  0.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  768.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1618,9 +1631,9 @@
                                                                                    "line_width":  2.5
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  256.0,
+                                                                "y":  200.0,
                                                                 "width":  768.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1636,9 +1649,9 @@
                                                                                    "line_width":  2.5
                                                                                },
                                                                 "x":  0.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  768.0,
-                                                                "height":  256.0,
+                                                                "height":  200.0,
                                                                 "showTitle":  true
                                                             },
                                                             {
@@ -1654,10 +1667,10 @@
                                                                                    "line_width":  2.5
                                                                                },
                                                                 "x":  768.0,
-                                                                "y":  512.0,
+                                                                "y":  400.0,
                                                                 "width":  768.0,
-                                                                "height":  256.0,
-                                                                                   "showTitle":  true
+                                                                "height":  200.0,
+                                                                "showTitle":  true
                                                             }
                                                         ],
                                          "layouts":  [

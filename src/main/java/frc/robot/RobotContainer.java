@@ -6,7 +6,7 @@ import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
 
 import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.util.PathPlannerLogging;
 
 import edu.wpi.first.math.filter.SlewRateLimiter;
@@ -18,6 +18,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
@@ -78,7 +79,7 @@ public class RobotContainer {
     // Competition shot. Drum RPM is now live from the distance table (see
     // aimShootRpm), so it tracks range like the hood does instead of a fixed
     // setpoint.
-    private static final double kShootSpindleRps = -50.0;
+    private static final double kShootSpindleRps = -30.0;
 
     // Drive translation/rotation scale while the shoot trigger is held: keeps
     // the swerve from starving the drum of voltage mid-shot.
@@ -101,6 +102,11 @@ public class RobotContainer {
 
     // One-shot boot-homing latch (see Intake.homeToNearestEnd).
     private boolean m_intakeHomed = false;
+
+    // Auto shoot hold. ShootStart schedules these in the background and
+    // ShootEnd cancels them, so a PathPlanner Wait can sit between the two.
+    private Command m_autoShootHold;
+    private Command m_autoShootDip;
 
     // POV manual tuning (match controls, both used only while tuning).
     // Direct mechanism control, deliberately NOT connected to the aim table
@@ -231,7 +237,7 @@ public class RobotContainer {
             .alongWith(
                 new AimHood(drivetrain, hood, this::currentAimPoint),
                 shooter.shootAtRpm(this::aimShootRpm, kShootSpindleRps,
-                    Constants.Shooter.kSpindleIdleRPS, hood)
+                    Constants.Shooter.kSpindleIdleRPS)
                     .alongWith(hopper.feedWhenReady(shooter,
                         Constants.Hopper.kAgitatorIdleRPS,
                         Constants.Hopper.kAgitatorMaxRPS)));
@@ -311,6 +317,7 @@ public class RobotContainer {
         configureVisionLogging();
 
         MechanismTriggers.register(intake, hopper, shooter, hood);
+        registerButtonNamedCommands();
 
         // Auto chooser from every auto on the robot (deploy/pathplanner/autos).
         autoChooser = AutoBuilder.buildAutoChooser();
@@ -602,6 +609,75 @@ public class RobotContainer {
         RobotModeTriggers.autonomous().whileTrue(led.solidGreen());
     }
 
+    /**
+     * Named commands that reproduce the driver button actions for PathPlanner
+     * autos:
+     * <ul>
+     *   <li>{@code IntakeToggle} — exactly what B does (deploy / cancel
+     *       outtake / stow), including the deployed latch so the roller
+     *       trigger resumes.</li>
+     *   <li>{@code ShootStart} — starts the full RT hold in the background
+     *       (hub lock, hood track, drum rev, feed when ready, intake dip).
+     *       It is INSTANT so a sequential auto can continue to a Wait.</li>
+     *   <li>{@code ShootEnd} — cancels the hold, restores the intake, and
+     *       stows the hood. Nothing is canceled before this is called.</li>
+     * </ul>
+     * ShootStart takes the drivetrain (aim lock), so call it after the path
+     * has finished; otherwise it will interrupt path following.
+     */
+    private void registerButtonNamedCommands() {
+        // In an auto this must only START the deploy and return immediately.
+        // Do not reuse the driver toggle here: the latch state is irrelevant in
+        // auto, and a blocking deploy command would hold the sequential group
+        // before the path starts. This is a one-shot pivot target write.
+        NamedCommands.registerCommand("IntakeToggle", Commands.runOnce(() -> {
+            m_intakeDeployed = true;
+            m_outtakeSuppressed = false;
+            intake.setPivotTarget(Constants.Intake.kPivotDeployedRot);
+        }));
+
+        // Instant: launch the persistent hold, then return so the auto can
+        // run a Wait before ShootEnd.
+        NamedCommands.registerCommand("ShootStart", Commands.runOnce(() -> {
+            if (m_autoShootHold != null) {
+                m_autoShootHold.cancel();
+            }
+            if (m_autoShootDip != null) {
+                m_autoShootDip.cancel();
+                m_autoShootDip = null;
+            }
+            shooter.resetFeedLatch();
+            m_autoShootHold = aimAndShoot();
+            CommandScheduler.getInstance().schedule(m_autoShootHold);
+            if (m_intakeDeployed) {
+                m_autoShootDip = intake.shootDip();
+                CommandScheduler.getInstance().schedule(m_autoShootDip);
+            }
+        }));
+
+        NamedCommands.registerCommand("ShootEnd",
+            Commands.runOnce(this::endAutoShoot));
+    }
+
+    /** Cancels the auto shoot hold and restores the RT-release state. */
+    private void endAutoShoot() {
+        if (m_autoShootHold != null) {
+            m_autoShootHold.cancel();
+            m_autoShootHold = null;
+        }
+        if (m_autoShootDip != null) {
+            m_autoShootDip.cancel();
+            m_autoShootDip = null;
+        }
+        if (m_intakeDeployed) {
+            intake.setPivotTarget(Constants.Intake.kPivotDeployedRot);
+            intake.setRollerRps(Constants.Intake.kRollerBaseRPS);
+        } else {
+            intake.setPivotTarget(Constants.Intake.kPivotStowedRot);
+        }
+        hood.setHoodDegrees(0.0);
+    }
+
     /** Sends PathPlanner trajectory/robot pose to the dashboard (Elastic). */
     private void configureVisionLogging() {
         // Shared with Telemetry: same /SmartDashboard/Field the widget reads.
@@ -618,6 +694,11 @@ public class RobotContainer {
     }
 
     public Command getAutonomousCommand() {
+        // The PathPlanner auto owns its starting pose: each .auto has
+        // "resetOdom": true, which resets odometry (and applies the alliance
+        // flip) inside PathPlannerAuto.initialize(). Do not wrap it in another
+        // resetOdom here — a second reset at schedule time just adds work at
+        // the auto-start edge.
         return autoChooser.getSelected();
     }
 }

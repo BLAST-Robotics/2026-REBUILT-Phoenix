@@ -2,12 +2,15 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Rotations;
 
+import com.ctre.phoenix6.configs.FeedbackConfigs;
 import com.ctre.phoenix6.configs.MotionMagicConfigs;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -29,6 +32,13 @@ public class Hood extends SubsystemBase {
     // must boot with the hood STOWED; that pose becomes delta zero.
     private boolean m_homed = false;
     private double m_zeroRot = 0.0;
+
+    // CANcoder health / rotor fallback. A missing CANcoder must not leave the
+    // TalonFX fused loop reading a stale position.
+    private static final double kCanCoderStaleSeconds = 0.10;
+    private static final double kCanCoderBootGraceSeconds = 1.0;
+    private final double m_bootTime = Timer.getFPGATimestamp();
+    private boolean m_rotorFallback = false;
 
     public Hood() {
         m_motor = new TalonFX(Constants.ID.kHoodMotor, Constants.kCANBus);

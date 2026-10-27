@@ -233,22 +233,20 @@ public class Shooter extends SubsystemBase {
 
     /**
      * Match shooting: drums always rev to target; spindle idles until the
-     * drums are up to speed AND the hood is on angle, then full feed.
-     * One requirement. Ends: drums to zero, spindle back to idle (ending a
-     * closed-loop command does NOT stop the motor otherwise — the Talon
-     * holds its last request and "shooting never stops").
+     * drums are up to speed, then full feed. The hood angle is deliberately
+     * NOT a gate — the hood can lag/vibrate or lose its CANcoder without
+     * holding the shot. One requirement. Ends: drums to zero, spindle back to
+     * idle (ending a closed-loop command does NOT stop the motor otherwise —
+     * the Talon holds its last request and "shooting never stops").
      */
-    public Command shootAtRpm(DoubleSupplier rpm, double spindleShootRps, double spindleIdleRps,
-            frc.robot.subsystems.Hood hood) {
+    public Command shootAtRpm(DoubleSupplier rpm, double spindleShootRps, double spindleIdleRps) {
         return runEnd(() -> {
             setDrumRpm(rpm.getAsDouble());
-            boolean ready = feedReady() && hood.hoodAtTarget();
+            boolean ready = feedReady();
             SmartDashboard.putBoolean("Shooter/FeedGate", ready);
-            // Gate components, so a blocked feed is diagnosable at a glance
-            // (1678-style per-condition logging).
+            // Drum gate is the only feed condition. Hood telemetry lives on
+            // Hood/AtSetpoint and is informational only.
             SmartDashboard.putBoolean("Shooter/FeedGate_Drum", m_feedLatched);
-            SmartDashboard.putBoolean("Shooter/FeedGate_Hood",
-                m_drumTargetRpm != 0.0 && hood.hoodAtTarget());
             setSpindleRps(ready ? spindleShootRps : spindleIdleRps);
         }, () -> {
             hardZeroDrums();
